@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ImportStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+enum CourseStatus {
+  passed
+  failed
+  retaken
+  in_progress
+  unknown
+  absent_final
+  banned_final
+}
+
+
+enum SectionType {
+  LEC
+  LAB
+  OTHER
+}
+
+model User {
+  id        String   @id @default(cuid())
+ email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  imports     ImportSession[]
+  transcripts Transcript[]
+  timetables  Timetable[]
+  sections    ClassSection[]
+  evaluations EvaluationDraft[]
+}
+
+model ImportSession {
+  id             String       @id @default(cuid())
+  userId         String
+  adapterKey     String       // e.g. "duytan"
+  adapterVersion String       // e.g. "dtu.v1.0.3"
+  sourcePage     String       // URL or logical page name
+  status         ImportStatus @default(SUCCESS)
+
+  //  idempotency key: hash theo payload (meta + data + userEmail)
+  payloadHash String?
+
+  recordCounts  Json?         // { transcript: 120, timetable: 35, ... }
+  diffSummary   Json?         // optional: { inserted: x, updated: y, deleted: z }
+
+  startedAt     DateTime      @default(now())
+  finishedAt    DateTime?
+  createdAt     DateTime      @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transcripts   Transcript[]
+  timetables    Timetable[]
+  sections      ClassSection[]
+  evaluations   EvaluationDraft[]
+
+  //  1 import session cho 1 payload y hệt
+  @@unique([userId, adapterKey, adapterVersion, payloadHash], name: "uq_importsession_idempotent")
+
+  @@index([userId, startedAt])
+  @@index([adapterKey, adapterVersion])
+}
+
+model Transcript {
+  id          String       @id @default(cuid())
+  userId      String
+  importId    String?
+
+  courseCode  String
+  courseName  String
+  credits     Int
+
+  score10     Float?       // Đ (0..10)
+  letter      String?      // A+, A, ...
+  gpa4        Float?       // 0..4
+
+  semester    String       // "2024-2025 HK1" (or normalized key)
+  status      CourseStatus @default(unknown)
+
+  componentsBreakdown Json?
+
+  adapterKey     String
+  adapterVersion String
+  sourcePage     String
+  lastSyncedAt   DateTime @default(now())
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import      ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  //  Natural key for idempotent upsert
+  @@unique([userId, courseCode, semester], name: "uq_transcript_natural")
+  @@index([userId, semester])
+  @@index([courseCode])
+}
+
+model Timetable {
+  id           String   @id @default(cuid())
+  userId       String
+  importId     String?
+
+  semester     String
+  courseCode   String
+  courseName   String?
+
+  dayOfWeek    Int      // 1..7
+  startTime    String   // "07:30"
+  endTime      String   // "09:10"
+  room         String?
+  campus       String?
+
+  weeksIncluded String?
+  weeksCanceled String?
+
+  adapterKey     String
+  adapterVersion String
+  sourcePage     String
+  lastSyncedAt   DateTime @default(now())
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import       ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  //  Natural key (đừng đưa endTime vào để tránh tạo bản mới khi endTime thay đổi nhẹ)
+  @@unique([userId, semester, courseCode, dayOfWeek, startTime, room], name: "uq_timetable_natural")
+  @@index([userId, semester])
+}
+
+model ClassSection {
+  id            String      @id @default(cuid())
+  userId        String
+  importId      String?
+
+  semester      String
+  classCode     String
+  courseCode    String
+  credits       Int
+  type          SectionType @default(OTHER)
+
+  capacityStatus String
+  note          String?
+
+  scheduleSlots Json?
+  weeksIncluded String?
+  weeksCanceled String?
+
+  adapterKey     String
+  adapterVersion String
+  sourcePage     String
+  lastSyncedAt   DateTime @default(now())
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import        ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, semester, classCode], name: "uq_section_natural")
+  @@index([userId, semester])
+}
+
+model EvaluationDraft {
+  id          String @id @default(cuid())
+  userId      String
+  importId    String?
+
+  semester    String
+  lecturer    String
+  courseCode  String
+  courseName  String?
+
+  answers     Json
+
+  adapterKey     String
+  adapterVersion String
+  sourcePage     String
+  lastSyncedAt   DateTime @default(now())
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import      ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  @@index([userId, semester])
+}
