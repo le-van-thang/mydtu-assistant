@@ -2,6 +2,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
+import { CourseStatus } from "@prisma/client";
 
 export const analyticsRouter = Router();
 
@@ -75,7 +76,7 @@ analyticsRouter.get("/gpa", async (req, res, next) => {
       const credits = Number(t.credits ?? 0);
       const gpa4 = toGpa4({ gpa4: t.gpa4 as any, score10: t.score10 as any });
 
-      const isPassed = t.status === "passed";
+      const isPassed = t.status === CourseStatus.passed;
       const okCredits = credits > 0;
       const okGpa = typeof gpa4 === "number";
 
