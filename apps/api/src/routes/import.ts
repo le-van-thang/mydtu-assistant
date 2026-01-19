@@ -1,5 +1,5 @@
 // apps/api/src/routes/import.ts
-import { CourseStatus } from "@prisma/client";
+import { CourseStatus, ImportStatus } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
@@ -122,7 +122,7 @@ importRouter.post("/", async (req, res) => {
           adapterKey,
           adapterVersion,
           sourcePage,
-          status: "SUCCESS",
+         status: ImportStatus.SUCCESS,
           payloadHash,
           recordCounts: {
             transcript: payload.data.transcripts.length,
@@ -131,7 +131,7 @@ importRouter.post("/", async (req, res) => {
         },
         update: {
           sourcePage,
-          status: "SUCCESS",
+          status: ImportStatus.SUCCESS,
           recordCounts: {
             transcript: payload.data.transcripts.length,
             timetable: payload.data.timetables.length,

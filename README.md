@@ -1,8 +1,8 @@
 # 🎓 MYDTU Assistant
 
-MYDTU Assistant là một hệ thống **backend + shared logic** phục vụ việc
-thu thập, chuẩn hóa và phân tích dữ liệu học vụ sinh viên Đại học Duy Tân
-(từ extension / client bên ngoài), hướng tới các tính năng AI & học vụ thông minh.
+MYDTU Assistant là một hệ thống **backend + shared logic** phục vụ việc  
+thu thập, chuẩn hóa và phân tích dữ liệu học vụ sinh viên Đại học Duy Tân  
+(từ extension / client bên ngoài), hướng tới các tính năng **AI & học vụ thông minh**.
 
 ---
 
@@ -11,19 +11,18 @@ thu thập, chuẩn hóa và phân tích dữ liệu học vụ sinh viên Đạ
 - Tự động **import bảng điểm, thời khóa biểu, lớp học**
 - Chuẩn hóa dữ liệu theo **schema thống nhất**
 - Tính toán học vụ:
-  - GPA 4.0
+  - GPA hệ 4.0
   - Trạng thái học phần (passed, failed, absent, banned…)
 - Làm nền tảng cho:
   - Planner học tập
   - Cảnh báo học vụ
   - Dự đoán GPA
-  - AI Assistant (sau này)
+  - AI Assistant (tương lai)
 
 ---
 
 ## 🧱 Kiến trúc tổng quan
 
-```text
 ┌────────────────────┐
 │ Browser Extension  │
 │ (MyDTU Scraper)    │
@@ -63,6 +62,7 @@ thu thập, chuẩn hóa và phân tích dữ liệu học vụ sinh viên Đạ
 │ - Academic utilities     │
 └──────────────────────────┘
 📁 Cấu trúc thư mục
+
 mydtu-assistant/
 ├── apps/
 │   └── api/
@@ -87,6 +87,7 @@ mydtu-assistant/
 ├── pnpm-workspace.yaml
 ├── package.json
 └── README.md
+-----------------------------------------------------------
 🧠 Luồng xử lý dữ liệu (Import Flow)
 Extension gửi payload JSON lên API /import
 
@@ -107,7 +108,7 @@ Timetable
 ClassSection
 
 Trả về thống kê import
-
+-----------------------------------------------------------
 📊 Trạng thái học phần (CourseStatus)
 passed
 failed
@@ -123,7 +124,7 @@ Không có status → tính theo score10
 < 4.0 → failed
 
 >= 4.0 → passed
-
+-----------------------------------------------------------
 🛠 Công nghệ sử dụng
 Node.js + TypeScript
 
@@ -136,7 +137,7 @@ PostgreSQL
 pnpm workspace
 
 Zod (validation)
-
+-----------------------------------------------------------
 🚀 Chạy project (local)
 
 pnpm install
@@ -144,20 +145,17 @@ cd apps/api
 npx prisma migrate dev
 pnpm dev
 API chạy tại:
-
-arduino
-Sao chép mã
 http://localhost:4000
 Prisma Studio:
-
 npx prisma studio
+-----------------------------------------------------------
 🔒 Lưu ý bảo mật
 Không lưu dữ liệu đăng nhập MyDTU
 
 Không crawl trực tiếp từ server
 
 Chỉ nhận dữ liệu do client chủ động gửi
-
+-----------------------------------------------------------
 📌 Định hướng tiếp theo
 GPA Planner & Goal Seeking
 
@@ -168,6 +166,7 @@ Recommendation học phần
 Frontend Dashboard (React)
 
 Authentication riêng (không liên quan MyDTU)
+
 👤 Tác giả
 Lê Văn Thắng
 Project học thuật / nghiên cứu
