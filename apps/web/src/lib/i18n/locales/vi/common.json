@@ -1,0 +1,117 @@
+
+{
+  "app": {
+    "name": "MYDTU Assistant",
+    "tagline": "Hệ thống trợ lý học tập DTU"
+  },
+  "common": {
+    "new": "Làm mới",
+    "backToApp": "Quay lại ứng dụng"
+  },
+  "nav": {
+    "title": "Điều hướng",
+    "dashboard": "Tổng quan",
+    "planner": "Kế hoạch",
+    "reminders": "Nhắc nhở",
+    "study": "Học tập",
+    "timetable": "Thời khóa biểu",
+    "transcript": "Bảng điểm",
+    "warnings": "Cảnh báo",
+    "settings": "Cài đặt"
+  },
+  "status": {
+    "title": "Trạng thái dữ liệu",
+    "lastSync": "Đồng bộ lần cuối"
+  },
+  "dashboard": {
+    "title": "Tổng quan",
+    "subtitle": "Theo dõi GPA, lịch học và nhắc nhở của bạn.",
+    "card": {
+      "gpa": "GPA tích lũy",
+      "gpaHint": "Số liệu demo (bạn nối dữ liệu thật sau).",
+      "todo": "Việc cần làm",
+      "todoItem1": "Ôn tập giữa kỳ (Cấu trúc dữ liệu)",
+      "todoItem2": "Nộp bài tập (Lập trình Web)"
+    }
+  },
+  "planner": {
+    "title": "Kế hoạch",
+    "subtitle": "Lập kế hoạch học tập theo tuần/tháng.",
+    "section": "Kế hoạch tuần",
+    "placeholder": "Khu vực kế hoạch (bạn thay bằng UI HTML thiết kế sẵn)."
+  },
+  "reminders": {
+    "title": "Nhắc nhở",
+    "subtitle": "Nhắc deadline, lịch thi và lịch học.",
+    "card1": "Deadline gần nhất",
+    "p1": "Chưa có dữ liệu thật (demo UI).",
+    "card2": "Lịch thi",
+    "p2": "Bạn nối dữ liệu từ DTU / API sau."
+  },
+  "study": {
+    "title": "Học tập",
+    "subtitle": "Gợi ý nhiệm vụ học, tài liệu và tiến độ.",
+    "section": "Nhiệm vụ hôm nay",
+    "placeholder": "Danh sách task học tập (demo)."
+  },
+  "timetable": {
+    "title": "Thời khóa biểu",
+    "subtitle": "Xem lịch học theo ngày/tuần.",
+    "section": "Lịch tuần",
+    "placeholder": "Bảng thời khóa biểu (demo)."
+  },
+  "transcript": {
+    "title": "Bảng điểm",
+    "subtitle": "Xem kết quả học tập và GPA theo kỳ.",
+    "section": "Tổng hợp điểm",
+    "placeholder": "Bảng điểm (demo)."
+  },
+  "warnings": {
+    "title": "Cảnh báo",
+    "subtitle": "Cảnh báo học vụ: nợ môn, GPA thấp, trễ hạn.",
+    "section": "Cảnh báo hệ thống",
+    "placeholder": "Chưa có cảnh báo (demo)."
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "subtitle": "Tuỳ chỉnh ứng dụng MYDTU Assistant.",
+    "section": "Tuỳ chọn",
+    "placeholder": "Cài đặt ngôn ngữ, đồng bộ, tài khoản..."
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "register": "Đăng ký",
+    "loading": "Đang xử lý...",
+    "loginTitle": "Đăng nhập",
+    "loginSubtitle": "Truy cập MYDTU Assistant",
+    "registerTitle": "Đăng ký",
+    "registerSubtitle": "Tạo tài khoản để đồng bộ dữ liệu",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "confirmPassword": "Nhập lại mật khẩu",
+    "fullName": "Họ và tên",
+    "birthDate": "Ngày sinh",
+    "placeOfBirthOptional": "Nơi sinh (không bắt buộc)",
+    "noAccount": "Chưa có tài khoản?",
+    "haveAccount": "Đã có tài khoản?",
+    "schoolType": {
+      "label": "Loại trường",
+      "university": "Đại học",
+      "college": "Cao đẳng",
+      "highschool": "THPT",
+      "other": "Khác"
+    },
+    "errors": {
+      "nameRequired": "Vui lòng nhập họ và tên.",
+      "emailRequired": "Vui lòng nhập email.",
+      "emailInvalid": "Email không hợp lệ.",
+      "emailExists": "Email này đã có tài khoản.",
+      "emailDomainNotAllowed": "Đuôi email không được hỗ trợ hoặc không hợp lệ.",
+      "passwordRequired": "Vui lòng nhập mật khẩu.",
+      "passwordMin": "Mật khẩu phải có ít nhất 6 ký tự.",
+      "passwordConfirmMismatch": "Mật khẩu nhập lại không khớp.",
+      "birthDateRequired": "Vui lòng chọn ngày sinh."
+    }
+  }
+}

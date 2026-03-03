@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.light {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+}
+
+.dark {
+  --bg-main: #020617;
+  --bg-card: #0f172a;
+  --text-main: #e2e8f0;
+}

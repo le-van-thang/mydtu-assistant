@@ -13,6 +13,6 @@ ALTER TABLE "ImportSession" ADD COLUMN     "payloadHash" TEXT;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ImportSession_userId_adapterKey_adapterVersion_payloadHash_key" ON "ImportSession"("userId", "adapterKey", "adapterVersion", "payloadHash");
-
+  
 -- CreateIndex
 CREATE UNIQUE INDEX "Timetable_userId_semester_courseCode_dayOfWeek_startTime_ro_key" ON "Timetable"("userId", "semester", "courseCode", "dayOfWeek", "startTime", "room");

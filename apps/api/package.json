@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test": "vitest --config vitest.config.ts",
+    "test:run": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
+    "coverage": "vitest run --coverage --config vitest.config.ts"
   },
-
   "prisma": {
     "seed": "ts-node --project prisma/tsconfig.json --transpile-only prisma/seed.ts"
   },
-
   "dependencies": {
     "@mydtu/shared": "workspace:*",
     "@prisma/client": "^6.19.1",
@@ -24,10 +26,15 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
+    "@types/helmet": "^4.0.0",
     "@types/node": "^20.19.27",
+    "@types/supertest": "^6.0.3",
+    "@vitest/coverage-v8": "^4.0.18",
     "prisma": "^6.19.1",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

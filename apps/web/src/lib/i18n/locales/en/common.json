@@ -1,0 +1,117 @@
+
+{
+  "app": {
+    "name": "MYDTU Assistant",
+    "tagline": "DTU Study Assistant System"
+  },
+  "common": {
+    "new": "Refresh",
+    "backToApp": "Back to app"
+  },
+  "nav": {
+    "title": "Navigation",
+    "dashboard": "Dashboard",
+    "planner": "Planner",
+    "reminders": "Reminders",
+    "study": "Study",
+    "timetable": "Timetable",
+    "transcript": "Transcript",
+    "warnings": "Warnings",
+    "settings": "Settings"
+  },
+  "status": {
+    "title": "Data status",
+    "lastSync": "Last sync"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Track GPA, timetable, and reminders.",
+    "card": {
+      "gpa": "Cumulative GPA",
+      "gpaHint": "Demo value (connect real data later).",
+      "todo": "To-do",
+      "todoItem1": "Midterm review (Data Structures)",
+      "todoItem2": "Submit assignment (Web Programming)"
+    }
+  },
+  "planner": {
+    "title": "Planner",
+    "subtitle": "Plan your study by week/month.",
+    "section": "Weekly plan",
+    "placeholder": "Planner area (replace with your HTML UI)."
+  },
+  "reminders": {
+    "title": "Reminders",
+    "subtitle": "Deadlines, exams, and study schedule.",
+    "card1": "Upcoming deadlines",
+    "p1": "No real data yet (UI demo).",
+    "card2": "Exams",
+    "p2": "Connect DTU / API later."
+  },
+  "study": {
+    "title": "Study",
+    "subtitle": "Tasks, resources, and progress suggestions.",
+    "section": "Today tasks",
+    "placeholder": "Task list (demo)."
+  },
+  "timetable": {
+    "title": "Timetable",
+    "subtitle": "View schedule by day/week.",
+    "section": "Weekly schedule",
+    "placeholder": "Timetable table (demo)."
+  },
+  "transcript": {
+    "title": "Transcript",
+    "subtitle": "Grades and GPA by term.",
+    "section": "Grade summary",
+    "placeholder": "Transcript table (demo)."
+  },
+  "warnings": {
+    "title": "Warnings",
+    "subtitle": "Academic alerts: overdue, low GPA, missing credits.",
+    "section": "System alerts",
+    "placeholder": "No alerts (demo)."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Customize MYDTU Assistant.",
+    "section": "Preferences",
+    "placeholder": "Language, sync, account..."
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "loading": "Processing...",
+    "loginTitle": "Login",
+    "loginSubtitle": "Access MYDTU Assistant",
+    "registerTitle": "Register",
+    "registerSubtitle": "Create an account to sync data",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "fullName": "Full name",
+    "birthDate": "Birth date",
+    "placeOfBirthOptional": "Place of birth (optional)",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "schoolType": {
+      "label": "School type",
+      "university": "University",
+      "college": "College",
+      "highschool": "High school",
+      "other": "Other"
+    },
+    "errors": {
+      "nameRequired": "Full name is required.",
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Email is invalid.",
+      "emailExists": "This email is already registered.",
+      "emailDomainNotAllowed": "Email domain is not supported.",
+      "passwordRequired": "Password is required.",
+      "passwordMin": "Password must be at least 6 characters.",
+      "passwordConfirmMismatch": "Confirm password does not match.",
+      "birthDateRequired": "Birth date is required."
+    }
+  }
+}
