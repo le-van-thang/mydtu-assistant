@@ -13,3 +13,4 @@ services:
       - mydtu_pg_data:/var/lib/postgresql/data
 volumes:
   mydtu_pg_data:
+  

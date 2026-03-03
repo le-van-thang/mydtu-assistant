@@ -1,19 +1,21 @@
-import { Router } from "express";
-import { prisma } from "../db";
+  // file: apps/api/src/routes/health.ts
 
-export const healthRouter = Router();
+  import { Router } from "express";
+  import { prisma } from "../db";
 
-/** GET /health */
-healthRouter.get("/", (_req, res) => {
-  res.json({ status: "ok", time: new Date().toISOString() });
-});
+  export const healthRouter = Router();
 
-/** GET /health/db/ping */
-healthRouter.get("/db/ping", async (_req, res, next) => {
-  try {
-    const now = await prisma.$queryRaw`SELECT now()`;
-    res.json({ ok: true, now });
-  } catch (e) {
-    next(e);
-  }
-});
+  /** GET /health */
+  healthRouter.get("/", (_req, res) => {
+    res.json({ status: "ok", time: new Date().toISOString() });
+  });
+
+  /** GET /health/db/ping */
+  healthRouter.get("/db/ping", async (_req, res, next) => {
+    try {
+      const now = await prisma.$queryRaw`SELECT now()`;
+      res.json({ ok: true, now });
+    } catch (e) {
+      next(e);
+    }
+  });
