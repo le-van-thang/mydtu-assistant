@@ -48,7 +48,6 @@ model User {
   password  String
   role      UserRole @default(user)
 
-  // NEW
   schoolType   SchoolType @default(university)
   birthDate    DateTime
   placeOfBirth String?
@@ -56,11 +55,42 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  settings    UserSettings?
   imports     ImportSession[]
   transcripts Transcript[]
   timetables  Timetable[]
   sections    ClassSection[]
   evaluations EvaluationDraft[]
+}
+
+model UserSettings {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+
+  theme               String   @default("system")
+  language            String   @default("vi")
+  density             String   @default("comfortable")
+
+  emailAlerts         Boolean  @default(true)
+  webPush             Boolean  @default(false)
+  timetableReminders  Boolean  @default(true)
+  deadlineReminders   Boolean  @default(true)
+  gradeAlerts         Boolean  @default(true)
+  weeklySummary       Boolean  @default(false)
+
+  rememberDevice      Boolean  @default(true)
+  analyticsOptIn      Boolean  @default(false)
+
+  onboardingDismissed Boolean  @default(false)
+  lastManualSyncAt    DateTime?
+  lastExportAt        DateTime?
+
+  avatarDataUrl       String?  @db.Text
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ImportSession {
@@ -127,35 +157,41 @@ model Transcript {
 }
 
 model Timetable {
-  id           String   @id @default(cuid())
-  userId       String
-  importId     String?
+  id              String   @id @default(cuid())
+  userId          String
+  importId        String?
 
-  semester     String
-  courseCode   String
-  courseName   String?
+  semester        String
+  weekLabel       String?
+  weekStartDate   DateTime?
+  weekEndDate     DateTime?
+  occurrenceDate  DateTime
 
-  dayOfWeek    Int
-  startTime    String
-  endTime      String
-  room         String
-  campus       String?
+  courseCode      String
+  courseName      String?
 
-  weeksIncluded String?
-  weeksCanceled String?
+  dayOfWeek       Int
+  startTime       String
+  endTime         String
+  room            String
+  campus          String?
 
-  adapterKey     String
-  adapterVersion String
-  sourcePage     String
-  lastSyncedAt   DateTime @default(now())
+  weeksIncluded   String?
+  weeksCanceled   String?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  adapterKey      String
+  adapterVersion  String
+  sourcePage      String
+  lastSyncedAt    DateTime @default(now())
 
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  import       ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  @@unique([userId, semester, courseCode, dayOfWeek, startTime, room], name: "uq_timetable_natural")
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, occurrenceDate, courseCode, startTime, room], name: "uq_timetable_occurrence")
+  @@index([userId, occurrenceDate])
   @@index([userId, semester])
 }
 

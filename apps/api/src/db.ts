@@ -1,4 +1,4 @@
-// apps/api/src/db.ts
+// path: apps/api/src/db.ts
 import { PrismaClient } from "@prisma/client";
 
 declare global {

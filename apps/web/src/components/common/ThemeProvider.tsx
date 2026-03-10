@@ -1,7 +1,8 @@
+// path: apps/web/src/components/common/ThemeProvider.tsx
 "use client";
 
 import { ThemeProvider as NextThemeProvider } from "next-themes";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export default function ThemeProvider({
   children,
@@ -11,7 +12,7 @@ export default function ThemeProvider({
   return (
     <NextThemeProvider
       attribute="class"
-      defaultTheme="dark"
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
     >

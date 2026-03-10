@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "MYDTU Sync",
+  "version": "0.2.0",
+  "description": "Bridge MYDTU and exam session to MYDTU Assistant web app",
+  "permissions": ["tabs", "storage", "scripting"],
+  "host_permissions": [
+    "https://mydtu.duytan.edu.vn/*",
+    "https://pdaotao.duytan.edu.vn/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "background": {
+    "service_worker": "service_worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/*", "http://127.0.0.1:3000/*"],
+      "js": ["content_bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://pdaotao.duytan.edu.vn/*"],
+      "js": ["exam_page.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "MYDTU Sync"
+  }
+}

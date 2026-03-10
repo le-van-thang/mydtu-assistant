@@ -1,5 +1,4 @@
 // apps/web/src/app/api/auth/login/route.ts
-
 import { signToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, password: true, role: true, name: true, email: true },
+    select: { id: true, password: true, role: true },
   });
 
   if (!user) {
@@ -34,12 +33,15 @@ export async function POST(req: Request) {
 
   const token = signToken({ id: user.id, role: user.role });
 
-  const res = NextResponse.json({ message: "Đăng nhập thành công" });
+  const res = NextResponse.json({ ok: true });
+
+  // ✅ cookie ổn định hơn cho dev
   res.cookies.set("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 ngày
   });
 
   return res;

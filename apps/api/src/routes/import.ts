@@ -1,12 +1,21 @@
-// file: apps/api/src/routes/import.ts
+// path: apps/api/src/routes/import.ts
 
 import { ImportPayloadSchema, normalizeGpa4, normalizeSemesterKey } from "@mydtu/shared";
 import { CourseStatus, ImportStatus, SectionType } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../db";
+import { buildOccurrenceDate, parseWeekLabel } from "../services/timetable/expandOccurrences";
 import { sha256Payload } from "../utils/payloadHash";
 
 export const importRouter = Router();
+
+// mật khẩu placeholder đã hash bcrypt, chỉ dùng cho user được tạo bởi import
+// không dùng để login thật
+const IMPORT_PLACEHOLDER_PASSWORD_HASH =
+  "$2b$10$8m7VY6m2G2H5f9fG1mS1KOPx5mDqRj0m2QW5f3QG4Oe2s7Y7wM8dK";
+
+// ngày sinh placeholder để satisfy schema hiện tại
+const IMPORT_PLACEHOLDER_BIRTHDATE = new Date("2000-01-01T00:00:00.000Z");
 
 function normalizeStatus(input: unknown, score10: number | null, letter: string | null): CourseStatus {
   const s = String(input ?? "").toLowerCase().trim();
@@ -18,16 +27,12 @@ function normalizeStatus(input: unknown, score10: number | null, letter: string 
   if (s === "absent_final") return CourseStatus.absent_final;
   if (s === "banned_final") return CourseStatus.banned_final;
 
-  // fallback theo score10
   if (typeof score10 === "number") return score10 < 4 ? CourseStatus.failed : CourseStatus.passed;
 
-  // fallback theo letter nếu thiếu score10
   const L = String(letter ?? "").trim().toUpperCase();
   if (L) {
     if (L === "F") return CourseStatus.failed;
-    // các điểm không tính GPA kiểu P/I/X/R: coi như unknown để khỏi tính GPA
     if (L === "P" || L === "I" || L === "X" || L === "R") return CourseStatus.unknown;
-    // còn lại coi như passed
     return CourseStatus.passed;
   }
 
@@ -41,15 +46,48 @@ function normalizeSectionType(t: unknown): SectionType {
   return SectionType.OTHER;
 }
 
+function toNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveWeekInfo(input: {
+  semester?: unknown;
+  weeksIncluded?: unknown;
+  fallbackSemester?: unknown;
+}) {
+  const candidates = [
+    toNonEmptyString(input.semester),
+    toNonEmptyString(input.weeksIncluded),
+    toNonEmptyString(input.fallbackSemester),
+  ].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    const parsed = parseWeekLabel(candidate);
+    if (parsed) {
+      return {
+        semesterLabel: candidate,
+        weekLabel: parsed.weekLabel,
+        weekStartDate: parsed.weekStartDate,
+        weekEndDate: parsed.weekEndDate,
+      };
+    }
+  }
+
+  return null;
+}
+
 importRouter.post("/", async (req, res) => {
   const parsed = ImportPayloadSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ ok: false, error: parsed.error.flatten() });
+  if (!parsed.success) {
+    return res.status(400).json({ ok: false, error: parsed.error.flatten() });
+  }
 
   const payload = parsed.data;
   const { email, name } = payload.user;
   const { adapterKey, adapterVersion, sourcePage } = payload.meta;
 
-  // Hash idempotent: không dính email/name
   const payloadHash = sha256Payload({
     adapterKey,
     adapterVersion,
@@ -62,11 +100,18 @@ importRouter.post("/", async (req, res) => {
       // 1) Upsert User
       const user = await tx.user.upsert({
         where: { email },
-        create: { email, name },
-        update: { name: name ?? undefined },
+        create: {
+          email,
+          name,
+          password: IMPORT_PLACEHOLDER_PASSWORD_HASH,
+          birthDate: IMPORT_PLACEHOLDER_BIRTHDATE,
+        },
+        update: {
+          name: name ?? undefined,
+        },
       });
 
-      // 2) check existing session (để trả idempotent)
+      // 2) Check existing session (idempotent)
       const existingSession = await tx.importSession.findUnique({
         where: {
           uq_importsession_idempotent: {
@@ -77,43 +122,33 @@ importRouter.post("/", async (req, res) => {
           },
         },
       });
-      const idempotent = Boolean(existingSession);
 
-      // 3) Upsert ImportSession
-      const importSession = await tx.importSession.upsert({
-        where: {
-          uq_importsession_idempotent: {
-            userId: user.id,
-            adapterKey,
-            adapterVersion,
-            payloadHash,
+      if (existingSession) {
+        return {
+          userId: user.id,
+          importId: existingSession.id,
+          payloadHash,
+          idempotent: true,
+          counts: existingSession.recordCounts ?? {
+            transcripts: 0,
+            timetables: 0,
+            timetablesSkipped: 0,
+            sections: 0,
+            evaluations: 0,
           },
-        },
-        create: {
+        };
+      }
+
+      // 3) Create ImportSession trước, update counts ở cuối
+      const importSession = await tx.importSession.create({
+        data: {
           userId: user.id,
           adapterKey,
           adapterVersion,
           sourcePage,
           status: ImportStatus.SUCCESS,
           payloadHash,
-          recordCounts: {
-            transcripts: payload.data.transcripts.length,
-            timetables: payload.data.timetables.length,
-            sections: payload.data.sections.length,
-            evaluations: payload.data.evaluations.length,
-          },
-          finishedAt: new Date(),
-        },
-        update: {
-          sourcePage,
-          status: ImportStatus.SUCCESS,
-          recordCounts: {
-            transcripts: payload.data.transcripts.length,
-            timetables: payload.data.timetables.length,
-            sections: payload.data.sections.length,
-            evaluations: payload.data.evaluations.length,
-          },
-          finishedAt: new Date(),
+          startedAt: new Date(),
         },
       });
 
@@ -125,12 +160,11 @@ importRouter.post("/", async (req, res) => {
         const semesterKey = normalizeSemesterKey(t.semester);
 
         const status = normalizeStatus(t.status, score10, letter);
-
         const g = normalizeGpa4({
           gpa4: t.gpa4 ?? null,
           letter,
           score10,
-          status: status,
+          status,
         });
 
         await tx.transcript.upsert({
@@ -176,21 +210,45 @@ importRouter.post("/", async (req, res) => {
         transcriptsUpserted++;
       }
 
-      // 5) Upsert Timetable
+      // 5) Upsert Timetable theo schema mới
       let timetablesUpserted = 0;
-      for (const s of payload.data.timetables) {
-        const semesterKey = normalizeSemesterKey(s.semester);
+      let timetablesSkipped = 0;
 
-        const roomKey = (s.room ?? "").trim();
-        const endTime = (s.endTime ?? "").trim();
+      const timetableSkipReasons: Array<{
+        courseCode: string;
+        semester?: string | null;
+        reason: string;
+      }> = [];
+
+      for (const s of payload.data.timetables) {
+        const roomKey = String(s.room ?? "").trim();
+        const endTime = String(s.endTime ?? "").trim();
+
+        const weekInfo = resolveWeekInfo({
+          semester: s.semester,
+          weeksIncluded: s.weeksIncluded,
+          fallbackSemester: payload.meta?.sourcePage,
+        });
+
+        if (!weekInfo) {
+          timetablesSkipped++;
+          timetableSkipReasons.push({
+            courseCode: s.courseCode,
+            semester: toNonEmptyString(s.semester),
+            reason:
+              'Không parse được tuần. Cần chuỗi dạng "Tuần 30: 02/03/2026 - 08/03/2026" trong semester hoặc weeksIncluded.',
+          });
+          continue;
+        }
+
+        const occurrenceDate = buildOccurrenceDate(weekInfo.weekStartDate, s.dayOfWeek);
 
         await tx.timetable.upsert({
           where: {
-            uq_timetable_natural: {
+            uq_timetable_occurrence: {
               userId: user.id,
-              semester: semesterKey,
+              occurrenceDate,
               courseCode: s.courseCode,
-              dayOfWeek: s.dayOfWeek,
               startTime: s.startTime,
               room: roomKey,
             },
@@ -198,7 +256,13 @@ importRouter.post("/", async (req, res) => {
           create: {
             userId: user.id,
             importId: importSession.id,
-            semester: semesterKey,
+
+            semester: weekInfo.semesterLabel,
+            weekLabel: weekInfo.weekLabel,
+            weekStartDate: weekInfo.weekStartDate,
+            weekEndDate: weekInfo.weekEndDate,
+            occurrenceDate,
+
             courseCode: s.courseCode,
             courseName: s.courseName ?? null,
             dayOfWeek: s.dayOfWeek,
@@ -208,18 +272,27 @@ importRouter.post("/", async (req, res) => {
             campus: s.campus ?? null,
             weeksIncluded: s.weeksIncluded ?? null,
             weeksCanceled: s.weeksCanceled ?? null,
+
             adapterKey,
             adapterVersion,
             sourcePage,
+            lastSyncedAt: new Date(),
           },
           update: {
             importId: importSession.id,
+
+            semester: weekInfo.semesterLabel,
+            weekLabel: weekInfo.weekLabel,
+            weekStartDate: weekInfo.weekStartDate,
+            weekEndDate: weekInfo.weekEndDate,
+
             courseName: s.courseName ?? null,
+            dayOfWeek: s.dayOfWeek,
             endTime,
-            room: roomKey,
             campus: s.campus ?? null,
             weeksIncluded: s.weeksIncluded ?? null,
             weeksCanceled: s.weeksCanceled ?? null,
+
             adapterKey,
             adapterVersion,
             sourcePage,
@@ -327,17 +400,40 @@ importRouter.post("/", async (req, res) => {
         evaluationsUpserted++;
       }
 
+      const finalStatus =
+        timetablesSkipped > 0 ? ImportStatus.PARTIAL : ImportStatus.SUCCESS;
+
+      const recordCounts = {
+        transcripts: transcriptsUpserted,
+        timetables: timetablesUpserted,
+        timetablesSkipped,
+        sections: sectionsUpserted,
+        evaluations: evaluationsUpserted,
+      };
+
+      const diffSummaryValue =
+        timetablesSkipped > 0
+          ? {
+              skippedTimetables: timetableSkipReasons,
+            }
+          : undefined;
+
+      await tx.importSession.update({
+        where: { id: importSession.id },
+        data: {
+          status: finalStatus,
+          recordCounts,
+          diffSummary: diffSummaryValue,
+          finishedAt: new Date(),
+        },
+      });
+
       return {
         userId: user.id,
         importId: importSession.id,
         payloadHash,
-        idempotent,
-        counts: {
-          transcripts: transcriptsUpserted,
-          timetables: timetablesUpserted,
-          sections: sectionsUpserted,
-          evaluations: evaluationsUpserted,
-        },
+        idempotent: false,
+        counts: recordCounts,
       };
     });
 
