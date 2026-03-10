@@ -1,5 +1,4 @@
-// file: apps/api/src/app.ts
-
+// path: apps/api/src/app.ts
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -25,7 +24,6 @@ export function createApp() {
     if (err instanceof ZodError) {
       return res.status(400).json({ error: "VALIDATION_ERROR", details: err.errors });
     }
-
     if (err?.code === "P2002") {
       return res.status(409).json({
         error: "DUPLICATE",
@@ -33,7 +31,6 @@ export function createApp() {
         meta: err?.meta,
       });
     }
-
     const status = Number(err?.status ?? 500);
     console.error(err);
     res.status(status).json({ error: "INTERNAL_ERROR", message: err?.message ?? "Error" });

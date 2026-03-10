@@ -1,4 +1,3 @@
-
 {
   "app": {
     "name": "MYDTU Assistant",
@@ -6,7 +5,47 @@
   },
   "common": {
     "new": "Refresh",
-    "backToApp": "Back to app"
+    "backToApp": "Back to app",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "update": "Update",
+    "reset": "Reset",
+    "today": "Today",
+    "day": "Day",
+    "week": "Week",
+    "month": "Month",
+    "loading": "Loading...",
+    "status": "Status",
+    "noData": "No data",
+    "unknown": "Unknown",
+    "on": "On",
+    "off": "Off",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "viewMore": "View more",
+    "preview": "Preview",
+    "chooseFile": "Choose file",
+    "remove": "Remove",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "campus": "Campus",
+    "room": "Room",
+    "course": "Course",
+    "courseCode": "Course code",
+    "date": "Date",
+    "time": "Time",
+    "mode": "Mode",
+    "version": "Version"
+  },
+  "shell": {
+    "userFallback": "User",
+    "userAvatarAlt": "User avatar",
+    "openAccountMenu": "Open account menu",
+    "toggleTheme": "Toggle light and dark theme"
   },
   "nav": {
     "title": "Navigation",
@@ -17,7 +56,8 @@
     "timetable": "Timetable",
     "transcript": "Transcript",
     "warnings": "Warnings",
-    "settings": "Settings"
+    "settings": "Settings",
+    "profile": "Profile"
   },
   "status": {
     "title": "Data status",
@@ -58,7 +98,120 @@
     "title": "Timetable",
     "subtitle": "View schedule by day/week.",
     "section": "Weekly schedule",
-    "placeholder": "Timetable table (demo)."
+    "placeholder": "Timetable table (demo).",
+    "actions": {
+      "syncExtension": "Sync from Extension",
+      "reloadData": "Reload data",
+      "connectMyDtu": "Connect MYDTU",
+      "checkConnection": "Check connection"
+    },
+    "sync": {
+      "scanning": "Scanning multiple weeks from MYDTU, please wait...",
+      "syncing": "Syncing...",
+      "extensionFailed": "Extension sync failed.",
+      "timeout": "Extension did not respond in time.",
+      "emptyResponse": "Extension returned empty data.",
+      "emptyItems": "Extension responded but no timetable rows were found.",
+      "invalidPayload": "Invalid payload from extension.",
+      "missingCourseCode": "Timetable row #{{row}} is missing courseCode.",
+      "missingDayOfWeek": "Timetable row #{{row}} is missing a valid dayOfWeek.",
+      "missingStartTime": "Timetable row #{{row}} is missing startTime.",
+      "missingEndTime": "Timetable row #{{row}} is missing endTime.",
+      "missingRoom": "Timetable row #{{row}} is missing room.",
+      "importFailedWithReason": "Import failed: {{reason}}",
+      "importFailedWithStatus": "Import failed ({{status}}).",
+      "unsupportedScope": "Unsupported scope: {{scope}}",
+      "success": "Synced successfully {{totalItems}} classes{{totalWeeks, plural, =0 {} other { from {{totalWeeks}} weeks}}}.",
+      "successSimple": "Sync completed."
+    },
+    "summary": {
+      "todayNotice": "Today's notice",
+      "syncStatus": "Sync status",
+      "connectionStatus": "Connection status",
+      "notChecked": "Not checked yet",
+      "connected": "Connected",
+      "syncSuccess": "Timetable data synced successfully.",
+      "lastSyncAt": "Last sync: {{time}}."
+    },
+    "viewMode": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "filters": {
+      "allCampuses": "All campuses",
+      "searchPlaceholder": "Filter by course code or course name"
+    },
+    "todayCard": {
+      "title": "Today"
+    },
+    "quickOverview": {
+      "title": "Quick overview",
+      "colorLegend": "Color legend",
+      "online": "Online",
+      "onsite": "On-site",
+      "currentViewMode": "Current view mode",
+      "visibleItems": "Visible items",
+      "todayItems": "Today's classes",
+      "selectedDate": "Selected date",
+      "lastSync": "Last sync"
+    },
+    "legend": {
+      "online": "Online class or campus/room marked online",
+      "onsite": "In-person class at campus/room"
+    },
+    "empty": {
+      "noSchedule": "No schedule."
+    },
+    "table": {
+      "date": "Date",
+      "weekday": "Weekday",
+      "time": "Time",
+      "courseCode": "Course code",
+      "courseName": "Course name",
+      "room": "Room",
+      "campus": "Campus",
+      "mode": "Mode",
+      "week": "Week"
+    },
+    "modeLabel": {
+      "online": "Online",
+      "onsite": "On-site"
+    },
+    "notice": {
+      "noClassToday": "You have no classes today. You can rest or spend time on your personal plan.",
+      "hasClassToday": "You have {{count}} classes today. Please check the time and room before going."
+    },
+    "content": {
+      "daySchedule": "Daily schedule",
+      "weekSchedule": "Weekly schedule",
+      "monthSchedule": "Monthly schedule",
+      "monthOverview": "View the timetable in month calendar format.",
+      "fullDetails": "Show full subject, time, room, campus, and study week information.",
+      "loadingTimetable": "Loading timetable data...",
+      "emptyDay": "There is no schedule on this day.",
+      "emptyWeek": "There is no schedule this week.",
+      "emptyMonth": "There is no schedule this month.",
+      "noSchedule": "No schedule.",
+      "classes": "{{count}} classes",
+      "moreClasses": "+{{count}} more classes"
+    },
+    "labels": {
+      "today": "Today",
+      "onlineDescription": "Online classes or rooms/campuses containing the word Online",
+      "onsiteDescription": "Classes held in person at room/campus",
+      "lastSyncFailed": "The latest sync did not complete. You should sync again from the extension.",
+      "partialSync": "Partial sync. Some classes could not be parsed by week. Last sync: {{time}}.",
+      "successfulSync": "Timetable data synced successfully. Last sync: {{time}}.",
+      "viewPrevious": "View previous period",
+      "viewNext": "View next period",
+      "selectDate": "Select a date to view timetable",
+      "filterCampus": "Filter by campus",
+      "roomLabel": "Room: {{value}}",
+      "campusLabel": "Campus: {{value}}",
+      "weekLabel": "Week: {{value}}",
+      "todayNoClass": "No classes today."
+    }
   },
   "transcript": {
     "title": "Transcript",
@@ -74,9 +227,189 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Customize MYDTU Assistant.",
+    "subtitle": "Customize MYDTU Assistant to match your workflow.",
     "section": "Preferences",
-    "placeholder": "Language, sync, account..."
+    "placeholder": "Language, sync, account...",
+    "saveButton": "Save changes",
+    "saveState": {
+      "stable": "Stable",
+      "dirty": "Unsaved",
+      "saving": "Saving...",
+      "saved": "Saved",
+      "error": "Save failed"
+    },
+    "messages": {
+      "loadError": "Failed to load settings.",
+      "saveSuccess": "Settings saved successfully.",
+      "saveFailed": "Failed to save settings.",
+      "restoreDefaults": "Default settings restored. Press Save to apply.",
+      "exportedJson": "Settings JSON exported.",
+      "cacheCleared": "UI cache cleared and local settings reset.",
+      "quickSyncSuccess": "Quick sync completed. Press Save to record sync time.",
+      "onboardingReset": "Onboarding reset. Press Save to finish.",
+      "avatarSelected": "New avatar selected. Press Save to apply.",
+      "avatarRemoved": "Avatar removed. Press Save to apply.",
+      "invalidImage": "Only image files are allowed.",
+      "imageTooLarge": "Image is too large after compression. Please choose a smaller file.",
+      "deleteKeywordRequired": "You must type \"DELETE\" exactly to confirm.",
+      "logoutFailed": "Logout failed.",
+      "deleteAccountFailed": "Delete account failed."
+    },
+    "profileCard": {
+      "defaultName": "MYDTU User",
+      "noEmail": "No email available",
+      "activeSession": "Active session",
+      "changeAvatar": "Change photo",
+      "chooseAvatarFromDevice": "Choose avatar from device",
+      "removeAvatar": "Remove avatar",
+      "previewAvatar": "Preview avatar"
+    },
+    "appearance": {
+      "title": "Appearance & language",
+      "subtitle": "Configure theme, language, and display density.",
+      "theme": "Theme",
+      "themeDescription": "Apply light/dark appearance across the app.",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "language": "Language",
+      "languageDescription": "Prepare the app for full i18n.",
+      "density": "Display density",
+      "densityDescription": "Comfortable or compact for smaller screens.",
+      "comfortable": "Comfortable",
+      "compact": "Compact"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Control academic alerts and reminders.",
+      "emailAlerts": "Email alerts",
+      "emailAlertsDesc": "Score updates, important changes, academic alerts.",
+      "webPush": "Web push",
+      "webPushDesc": "Show notifications directly in the browser.",
+      "timetableReminders": "Class reminders",
+      "timetableRemindersDesc": "Remind before class starts.",
+      "deadlineReminders": "Deadline reminders",
+      "deadlineRemindersDesc": "Assignments, tests, and tasks reminder.",
+      "gradeAlerts": "Grade alerts",
+      "gradeAlertsDesc": "Notify when grades change or fall low.",
+      "weeklySummary": "Weekly summary",
+      "weeklySummaryDesc": "Send a weekly summary of classes and tasks."
+    },
+    "dataSync": {
+      "title": "Data & sync",
+      "subtitle": "Export data, reset local cache, sync configuration.",
+      "lastManualSync": "Last manual sync",
+      "lastExportJson": "Last JSON export",
+      "onboarding": "Onboarding",
+      "onboardingEnabled": "Enabled",
+      "onboardingDisabled": "Disabled",
+      "syncNow": "Sync now",
+      "exportJson": "Export JSON",
+      "clearLocalCache": "Clear local cache",
+      "resetOnboarding": "Reset onboarding",
+      "restoreDefaults": "Restore defaults",
+      "hint": "This version supports account-based settings sync. localStorage is now only a fallback layer for faster loading."
+    },
+    "privacy": {
+      "title": "Privacy & security",
+      "subtitle": "Options affecting experience and data collection.",
+      "rememberDevice": "Remember device",
+      "rememberDeviceDesc": "Keep some local preferences on this device.",
+      "analyticsOptIn": "Analytics opt-in",
+      "analyticsOptInDesc": "Allow anonymous usage events to improve UX.",
+      "avatarStorageHint": "Avatar is currently stored directly in DB as compressed image data. When object storage is available, you can switch to storing only a URL for better optimization."
+    },
+    "appInfo": {
+      "title": "App information",
+      "subtitle": "Current data source and configuration status.",
+      "dataSource": "Data source",
+      "dataSourceValue": "MYDTU Portal + user settings DB",
+      "uiEngine": "UI engine",
+      "uiEngineValue": "Next.js App Router",
+      "renderedTheme": "Rendered theme",
+      "settingsVersion": "Settings version",
+      "dataProvenance": "Data provenance: current preferences are synced to the signed-in account and can be reused in later sessions."
+    },
+    "dangerZone": {
+      "title": "Danger zone",
+      "subtitle": "Sensitive actions require confirmation before execution.",
+      "logout": "Logout",
+      "deleteAccount": "Delete account",
+      "hint": "Production recommendation: require current password before account deletion."
+    },
+    "deleteModal": {
+      "title": "Delete account?",
+      "description": "This action will delete all data associated with the current account and cannot be undone.",
+      "typeDeleteToConfirm": "Type DELETE to confirm.",
+      "confirmPlaceholder": "Type DELETE",
+      "passwordLabel": "Current password",
+      "passwordPlaceholder": "Enter current password",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete account",
+      "processing": "Processing..."
+    },
+    "quickOverview": {
+      "title": "Quick overview",
+      "theme": "Theme",
+      "language": "Language",
+      "density": "Density",
+      "emailAlerts": "Email alerts",
+      "webPush": "Web push"
+    },
+    "checklist": {
+      "title": "Professional checklist",
+      "themeModes": "Light / dark / system theme",
+      "localFallback": "Safe local fallback",
+      "dbLoadSave": "Load/save DB by user",
+      "avatarFromDevice": "Choose avatar from device",
+      "avatarPreview": "Avatar preview",
+      "exportJson": "Export JSON",
+      "dangerZone": "Danger zone + confirm modal",
+      "webPushPermission": "Real web push permission sync with browser",
+      "reAuthDelete": "Re-auth stronger before deleting account"
+    }
+  },
+  "profileMenu": {
+    "myProfile": "My profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your personal information and account details.",
+    "basicInfo": "Basic information",
+    "accountInfo": "Account information",
+    "fullName": "Full name",
+    "email": "Email",
+    "role": "Role",
+    "schoolType": "School type",
+    "birthDate": "Birth date",
+    "placeOfBirth": "Place of birth",
+    "joinedAt": "Joined at",
+    "lastUpdated": "Last updated",
+    "active": "Active account",
+    "avatarHint": "Click the avatar to preview or change it",
+    "changeAvatar": "Change avatar",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmNewPasswordPlaceholder": "Re-enter new password",
+    "messages": {
+      "saveSuccess": "Profile updated successfully.",
+      "saveFailed": "Failed to save profile.",
+      "avatarSaved": "Avatar updated successfully.",
+      "avatarSaveFailed": "Failed to update avatar.",
+      "avatarRemoved": "Avatar removed successfully.",
+      "avatarRemoveFailed": "Failed to remove avatar.",
+      "passwordChanged": "Password changed successfully.",
+      "passwordChangeFailed": "Failed to change password.",
+      "currentPasswordRequired": "Please enter your current password.",
+      "loadFailedTitle": "Failed to load profile",
+      "loadFailedSubtitle": "Your session may have expired."
+    }
   },
   "auth": {
     "login": "Login",
@@ -87,8 +420,14 @@
     "loginSubtitle": "Access MYDTU Assistant",
     "registerTitle": "Register",
     "registerSubtitle": "Create an account to sync data",
+    "loginSuccess": "Login successful.",
+    "registerSuccess": "Registration successful.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "email": "Email",
+    "emailAllowedSuffix": "Allowed email suffixes:",
     "password": "Password",
+    "passwordRule": "Password must be at least 6 characters.",
     "confirmPassword": "Confirm password",
     "fullName": "Full name",
     "birthDate": "Birth date",
@@ -111,7 +450,9 @@
       "passwordRequired": "Password is required.",
       "passwordMin": "Password must be at least 6 characters.",
       "passwordConfirmMismatch": "Confirm password does not match.",
-      "birthDateRequired": "Birth date is required."
+      "birthDateRequired": "Birth date is required.",
+      "loginFailed": "Login failed.",
+      "registerFailed": "Registration failed."
     }
   }
 }

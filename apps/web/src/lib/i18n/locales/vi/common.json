@@ -1,4 +1,3 @@
-
 {
   "app": {
     "name": "MYDTU Assistant",
@@ -6,7 +5,47 @@
   },
   "common": {
     "new": "Làm mới",
-    "backToApp": "Quay lại ứng dụng"
+    "backToApp": "Quay lại ứng dụng",
+    "save": "Lưu",
+    "cancel": "Huỷ",
+    "close": "Đóng",
+    "delete": "Xoá",
+    "edit": "Chỉnh sửa",
+    "update": "Cập nhật",
+    "reset": "Đặt lại",
+    "today": "Hôm nay",
+    "day": "Ngày",
+    "week": "Tuần",
+    "month": "Tháng",
+    "loading": "Đang tải...",
+    "status": "Trạng thái",
+    "noData": "Chưa có dữ liệu",
+    "unknown": "Không xác định",
+    "on": "Bật",
+    "off": "Tắt",
+    "enabled": "Đang bật",
+    "disabled": "Đang tắt",
+    "viewMore": "Xem thêm",
+    "preview": "Xem trước",
+    "chooseFile": "Chọn file",
+    "remove": "Xoá",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "all": "Tất cả",
+    "campus": "Cơ sở",
+    "room": "Phòng",
+    "course": "Môn học",
+    "courseCode": "Mã môn",
+    "date": "Ngày",
+    "time": "Giờ",
+    "mode": "Hình thức",
+    "version": "Phiên bản"
+  },
+  "shell": {
+    "userFallback": "Người dùng",
+    "userAvatarAlt": "Ảnh đại diện người dùng",
+    "openAccountMenu": "Mở menu tài khoản",
+    "toggleTheme": "Đổi giao diện sáng tối"
   },
   "nav": {
     "title": "Điều hướng",
@@ -14,10 +53,11 @@
     "planner": "Kế hoạch",
     "reminders": "Nhắc nhở",
     "study": "Học tập",
-    "timetable": "Thời khóa biểu",
+    "timetable": "Thời khoá biểu",
     "transcript": "Bảng điểm",
     "warnings": "Cảnh báo",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "profile": "Hồ sơ"
   },
   "status": {
     "title": "Trạng thái dữ liệu",
@@ -27,7 +67,7 @@
     "title": "Tổng quan",
     "subtitle": "Theo dõi GPA, lịch học và nhắc nhở của bạn.",
     "card": {
-      "gpa": "GPA tích lũy",
+      "gpa": "GPA tích luỹ",
       "gpaHint": "Số liệu demo (bạn nối dữ liệu thật sau).",
       "todo": "Việc cần làm",
       "todoItem1": "Ôn tập giữa kỳ (Cấu trúc dữ liệu)",
@@ -55,10 +95,123 @@
     "placeholder": "Danh sách task học tập (demo)."
   },
   "timetable": {
-    "title": "Thời khóa biểu",
+    "title": "Thời khoá biểu",
     "subtitle": "Xem lịch học theo ngày/tuần.",
     "section": "Lịch tuần",
-    "placeholder": "Bảng thời khóa biểu (demo)."
+    "placeholder": "Bảng thời khoá biểu (demo).",
+    "actions": {
+      "syncExtension": "Sync từ Extension",
+      "reloadData": "Tải lại dữ liệu",
+      "connectMyDtu": "Kết nối MYDTU",
+      "checkConnection": "Kiểm tra kết nối"
+    },
+    "sync": {
+      "scanning": "Đang quét nhiều tuần từ MYDTU, vui lòng chờ...",
+      "syncing": "Đang sync...",
+      "extensionFailed": "Extension sync thất bại.",
+      "timeout": "Extension không phản hồi kịp thời.",
+      "emptyResponse": "Extension trả về rỗng.",
+      "emptyItems": "Extension đã phản hồi nhưng không có dòng lịch nào.",
+      "invalidPayload": "Payload từ extension không hợp lệ.",
+      "missingCourseCode": "Dòng lịch #{{row}} thiếu courseCode.",
+      "missingDayOfWeek": "Dòng lịch #{{row}} thiếu dayOfWeek hợp lệ.",
+      "missingStartTime": "Dòng lịch #{{row}} thiếu startTime.",
+      "missingEndTime": "Dòng lịch #{{row}} thiếu endTime.",
+      "missingRoom": "Dòng lịch #{{row}} thiếu room.",
+      "importFailedWithReason": "Import thất bại: {{reason}}",
+      "importFailedWithStatus": "Import thất bại ({{status}}).",
+      "unsupportedScope": "Scope không hỗ trợ: {{scope}}",
+      "success": "Đã đồng bộ thành công {{totalItems}} buổi học{{totalWeeks, plural, =0 {} other { từ {{totalWeeks}} tuần}}}.",
+      "successSimple": "Đã đồng bộ xong."
+    },
+    "summary": {
+      "todayNotice": "Thông báo hôm nay",
+      "syncStatus": "Trạng thái đồng bộ",
+      "connectionStatus": "Trạng thái kết nối",
+      "notChecked": "Chưa kiểm tra",
+      "connected": "Đã kết nối",
+      "syncSuccess": "Dữ liệu thời khoá biểu đã đồng bộ thành công.",
+      "lastSyncAt": "Lần sync cuối: {{time}}."
+    },
+    "viewMode": {
+      "day": "Ngày",
+      "week": "Tuần",
+      "month": "Tháng"
+    },
+    "filters": {
+      "allCampuses": "Tất cả cơ sở",
+      "searchPlaceholder": "Lọc theo mã môn hoặc tên môn"
+    },
+    "todayCard": {
+      "title": "Hôm nay"
+    },
+    "quickOverview": {
+      "title": "Tổng quan nhanh",
+      "colorLegend": "Chú thích màu",
+      "online": "Online",
+      "onsite": "Tại lớp",
+      "currentViewMode": "Chế độ xem",
+      "visibleItems": "Số lịch đang hiển thị",
+      "todayItems": "Lịch hôm nay",
+      "selectedDate": "Ngày đang chọn",
+      "lastSync": "Lần sync cuối"
+    },
+    "legend": {
+      "online": "Lớp học trực tuyến hoặc phòng/cơ sở có chỉ Online",
+      "onsite": "Lớp học diễn ra trực tiếp tại phòng/cơ sở"
+    },
+    "empty": {
+      "noSchedule": "Không có lịch."
+    },
+    "table": {
+      "date": "Ngày",
+      "weekday": "Thứ",
+      "time": "Giờ",
+      "courseCode": "Mã môn",
+      "courseName": "Tên môn",
+      "room": "Phòng",
+      "campus": "Cơ sở",
+      "mode": "Hình thức",
+      "week": "Tuần"
+    },
+    "modeLabel": {
+      "online": "Online",
+      "onsite": "Tại lớp"
+    },
+    "notice": {
+      "noClassToday": "Hôm nay bạn không có lịch học. Có thể nghỉ ngơi hoặc dành thời gian cho kế hoạch cá nhân.",
+      "hasClassToday": "Hôm nay bạn có {{count}} lịch học. Hãy kiểm tra thời gian và phòng học trước khi đi."
+    },
+    "content": {
+      "daySchedule": "Lịch trong ngày",
+      "weekSchedule": "Lịch tuần",
+      "monthSchedule": "Lịch theo tháng",
+      "monthOverview": "Xem tổng quan lịch theo dạng lịch tháng.",
+      "fullDetails": "Hiển thị đầy đủ môn, giờ, phòng, cơ sở và tuần học.",
+      "loadingTimetable": "Đang tải dữ liệu thời khóa biểu...",
+      "emptyDay": "Ngày này không có lịch.",
+      "emptyWeek": "Tuần này chưa có lịch.",
+      "emptyMonth": "Tháng này chưa có lịch.",
+      "noSchedule": "Không có lịch.",
+      "classes": "{{count}} lớp",
+      "moreClasses": "+{{count}} lớp khác"
+    },
+    "labels": {
+      "today": "Hôm nay",
+      "onlineDescription": "Lớp học trực tuyến hoặc phòng/cơ sở có chữ Online",
+      "onsiteDescription": "Lớp học diễn ra trực tiếp tại phòng/cơ sở",
+      "lastSyncFailed": "Lần đồng bộ gần nhất không hoàn tất. Bạn nên sync lại từ extension.",
+      "partialSync": "Đồng bộ một phần. Một số buổi học chưa parse được tuần. Lần sync cuối: {{time}}.",
+      "successfulSync": "Dữ liệu thời khóa biểu đã đồng bộ thành công. Lần sync cuối: {{time}}.",
+      "viewPrevious": "Xem kỳ trước",
+      "viewNext": "Xem kỳ tiếp theo",
+      "selectDate": "Chọn ngày xem thời khóa biểu",
+      "filterCampus": "Lọc theo cơ sở",
+      "roomLabel": "Phòng: {{value}}",
+      "campusLabel": "Cơ sở: {{value}}",
+      "weekLabel": "Tuần: {{value}}",
+      "todayNoClass": "Hôm nay không có lịch học."
+    }
   },
   "transcript": {
     "title": "Bảng điểm",
@@ -74,9 +227,189 @@
   },
   "settings": {
     "title": "Cài đặt",
-    "subtitle": "Tuỳ chỉnh ứng dụng MYDTU Assistant.",
+    "subtitle": "Tuỳ chỉnh ứng dụng MYDTU Assistant theo cách dùng của bạn.",
     "section": "Tuỳ chọn",
-    "placeholder": "Cài đặt ngôn ngữ, đồng bộ, tài khoản..."
+    "placeholder": "Cài đặt ngôn ngữ, đồng bộ, tài khoản...",
+    "saveButton": "Lưu thay đổi",
+    "saveState": {
+      "stable": "Ổn định",
+      "dirty": "Chưa lưu",
+      "saving": "Đang lưu...",
+      "saved": "Đã lưu",
+      "error": "Lưu lỗi"
+    },
+    "messages": {
+      "loadError": "Không tải được cài đặt.",
+      "saveSuccess": "Đã lưu cài đặt thành công.",
+      "saveFailed": "Lưu cài đặt thất bại.",
+      "restoreDefaults": "Đã khôi phục cài đặt mặc định. Nhấn Lưu để áp dụng.",
+      "exportedJson": "Đã xuất file JSON cài đặt.",
+      "cacheCleared": "Đã xoá cache giao diện và reset cài đặt local.",
+      "quickSyncSuccess": "Đồng bộ nhanh thành công. Nhấn Lưu để ghi nhận thời gian sync.",
+      "onboardingReset": "Đã reset onboarding. Nhấn Lưu để hoàn tất.",
+      "avatarSelected": "Đã chọn ảnh đại diện mới. Nhấn Lưu để áp dụng.",
+      "avatarRemoved": "Đã xoá ảnh đại diện. Nhấn Lưu để áp dụng.",
+      "invalidImage": "Chỉ chấp nhận file ảnh.",
+      "imageTooLarge": "Ảnh quá lớn sau khi nén. Hãy chọn ảnh nhỏ hơn.",
+      "deleteKeywordRequired": "Bạn phải nhập đúng \"DELETE\" để xác nhận.",
+      "logoutFailed": "Đăng xuất thất bại.",
+      "deleteAccountFailed": "Xoá tài khoản thất bại."
+    },
+    "profileCard": {
+      "defaultName": "Người dùng MYDTU",
+      "noEmail": "Chưa có email",
+      "activeSession": "Phiên đang hoạt động",
+      "changeAvatar": "Đổi ảnh",
+      "chooseAvatarFromDevice": "Chọn avatar từ máy",
+      "removeAvatar": "Xoá avatar",
+      "previewAvatar": "Xem preview ảnh đại diện"
+    },
+    "appearance": {
+      "title": "Giao diện & ngôn ngữ",
+      "subtitle": "Thiết lập theme, ngôn ngữ và mật độ hiển thị.",
+      "theme": "Theme",
+      "themeDescription": "Đồng bộ toàn bộ giao diện theo tông sáng/tối.",
+      "light": "Sáng",
+      "dark": "Tối",
+      "system": "System",
+      "language": "Ngôn ngữ",
+      "languageDescription": "Chuẩn bị cho i18n toàn app.",
+      "density": "Mật độ hiển thị",
+      "densityDescription": "Thoải mái hoặc gọn hơn cho màn hình nhỏ.",
+      "comfortable": "Thoải mái",
+      "compact": "Gọn"
+    },
+    "notifications": {
+      "title": "Thông báo",
+      "subtitle": "Kiểm soát cảnh báo học tập và nhắc việc.",
+      "emailAlerts": "Thông báo email",
+      "emailAlertsDesc": "Thông báo điểm, thay đổi quan trọng, cảnh báo học vụ.",
+      "webPush": "Web push",
+      "webPushDesc": "Hiển thị thông báo ngay trên trình duyệt.",
+      "timetableReminders": "Nhắc lịch học",
+      "timetableRemindersDesc": "Nhắc trước giờ học.",
+      "deadlineReminders": "Nhắc deadline",
+      "deadlineRemindersDesc": "Nhắc bài tập, kiểm tra, việc cần làm.",
+      "gradeAlerts": "Cảnh báo điểm",
+      "gradeAlertsDesc": "Báo khi có thay đổi điểm hoặc điểm thấp.",
+      "weeklySummary": "Tóm tắt tuần",
+      "weeklySummaryDesc": "Gửi bản tóm tắt lịch và việc học mỗi tuần."
+    },
+    "dataSync": {
+      "title": "Dữ liệu & đồng bộ",
+      "subtitle": "Xuất dữ liệu, reset local cache, đồng bộ cấu hình.",
+      "lastManualSync": "Lần sync thủ công",
+      "lastExportJson": "Lần export JSON",
+      "onboarding": "Onboarding",
+      "onboardingEnabled": "Đang bật",
+      "onboardingDisabled": "Đã tắt",
+      "syncNow": "Sync now",
+      "exportJson": "Export JSON",
+      "clearLocalCache": "Clear local cache",
+      "resetOnboarding": "Reset onboarding",
+      "restoreDefaults": "Khôi phục mặc định",
+      "hint": "Bản này đã hỗ trợ save settings theo tài khoản. localStorage chỉ còn là lớp fallback để tải nhanh hơn."
+    },
+    "privacy": {
+      "title": "Quyền riêng tư & bảo mật",
+      "subtitle": "Các tuỳ chọn ảnh hưởng tới trải nghiệm và thu thập dữ liệu.",
+      "rememberDevice": "Nhớ thiết bị",
+      "rememberDeviceDesc": "Giữ lại một số tuỳ chọn local cho thiết bị hiện tại.",
+      "analyticsOptIn": "Cho phép analytics",
+      "analyticsOptInDesc": "Cho phép lưu sự kiện sử dụng ẩn danh để cải thiện UX.",
+      "avatarStorageHint": "Avatar hiện đang lưu trực tiếp ở DB dạng dữ liệu ảnh nén. Khi sau này có object storage, bạn có thể chuyển sang lưu URL để tối ưu hơn."
+    },
+    "appInfo": {
+      "title": "Thông tin ứng dụng",
+      "subtitle": "Nguồn dữ liệu và tình trạng cài đặt hiện tại.",
+      "dataSource": "Nguồn dữ liệu",
+      "dataSourceValue": "MYDTU Portal + user settings DB",
+      "uiEngine": "Cơ chế giao diện",
+      "uiEngineValue": "Next.js App Router",
+      "renderedTheme": "Theme đang render",
+      "settingsVersion": "Phiên bản settings",
+      "dataProvenance": "Data provenance: cấu hình đang được đồng bộ theo tài khoản hiện tại và có thể dùng lại trên các phiên đăng nhập tiếp theo."
+    },
+    "dangerZone": {
+      "title": "Vùng nguy hiểm",
+      "subtitle": "Các thao tác nhạy cảm cần xác nhận trước khi thực hiện.",
+      "logout": "Đăng xuất",
+      "deleteAccount": "Xoá tài khoản",
+      "hint": "Khuyến nghị production: yêu cầu xác thực lại mật khẩu trước khi xoá tài khoản."
+    },
+    "deleteModal": {
+      "title": "Xoá tài khoản?",
+      "description": "Hành động này sẽ xoá toàn bộ dữ liệu gắn với tài khoản hiện tại và không thể hoàn tác.",
+      "typeDeleteToConfirm": "Nhập DELETE để xác nhận.",
+      "confirmPlaceholder": "Gõ DELETE",
+      "passwordLabel": "Mật khẩu hiện tại",
+      "passwordPlaceholder": "Nhập mật khẩu hiện tại",
+      "cancel": "Huỷ",
+      "confirmDelete": "Xoá tài khoản",
+      "processing": "Đang xử lý..."
+    },
+    "quickOverview": {
+      "title": "Tổng quan nhanh",
+      "theme": "Theme",
+      "language": "Ngôn ngữ",
+      "density": "Mật độ",
+      "emailAlerts": "Thông báo email",
+      "webPush": "Web push"
+    },
+    "checklist": {
+      "title": "Checklist chuyên nghiệp",
+      "themeModes": "Theme sáng / tối / system",
+      "localFallback": "Lưu local fallback",
+      "dbLoadSave": "Load/save DB theo user",
+      "avatarFromDevice": "Avatar chọn file từ máy",
+      "avatarPreview": "Xem preview ảnh đại diện",
+      "exportJson": "Export JSON",
+      "dangerZone": "Danger zone + confirm modal",
+      "webPushPermission": "Đồng bộ web push thật với browser permission",
+      "reAuthDelete": "Re-auth mạnh hơn trước khi xoá tài khoản"
+    }
+  },
+  "profileMenu": {
+    "myProfile": "Hồ sơ của tôi",
+    "settings": "Cài đặt",
+    "logout": "Đăng xuất"
+  },
+  "profile": {
+    "title": "Hồ sơ",
+    "subtitle": "Quản lý thông tin cá nhân và chi tiết tài khoản của bạn.",
+    "basicInfo": "Thông tin cá nhân",
+    "accountInfo": "Thông tin tài khoản",
+    "fullName": "Họ và tên",
+    "email": "Email",
+    "role": "Vai trò",
+    "schoolType": "Loại trường",
+    "birthDate": "Ngày sinh",
+    "placeOfBirth": "Nơi sinh",
+    "joinedAt": "Ngày tham gia",
+    "lastUpdated": "Cập nhật gần nhất",
+    "active": "Tài khoản đang hoạt động",
+    "avatarHint": "Bấm vào ảnh để xem hoặc đổi avatar",
+    "changeAvatar": "Đổi avatar",
+    "changePassword": "Đổi mật khẩu",
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "confirmNewPassword": "Xác nhận mật khẩu mới",
+    "currentPasswordPlaceholder": "Nhập mật khẩu hiện tại",
+    "newPasswordPlaceholder": "Nhập mật khẩu mới",
+    "confirmNewPasswordPlaceholder": "Nhập lại mật khẩu mới",
+    "messages": {
+      "saveSuccess": "Đã lưu thông tin thành công.",
+      "saveFailed": "Lưu thông tin thất bại.",
+      "avatarSaved": "Đã cập nhật avatar.",
+      "avatarSaveFailed": "Cập nhật avatar thất bại.",
+      "avatarRemoved": "Đã xoá avatar.",
+      "avatarRemoveFailed": "Xoá avatar thất bại.",
+      "passwordChanged": "Đổi mật khẩu thành công.",
+      "passwordChangeFailed": "Đổi mật khẩu thất bại.",
+      "currentPasswordRequired": "Vui lòng nhập mật khẩu hiện tại.",
+      "loadFailedTitle": "Không tải được hồ sơ",
+      "loadFailedSubtitle": "Phiên đăng nhập có thể đã hết hạn."
+    }
   },
   "auth": {
     "login": "Đăng nhập",
@@ -87,8 +420,14 @@
     "loginSubtitle": "Truy cập MYDTU Assistant",
     "registerTitle": "Đăng ký",
     "registerSubtitle": "Tạo tài khoản để đồng bộ dữ liệu",
+    "loginSuccess": "Đăng nhập thành công.",
+    "registerSuccess": "Đăng ký thành công.",
+    "showPassword": "Hiện mật khẩu",
+    "hidePassword": "Ẩn mật khẩu",
     "email": "Email",
+    "emailAllowedSuffix": "Đuôi email được chấp nhận:",
     "password": "Mật khẩu",
+    "passwordRule": "Mật khẩu phải có ít nhất 6 ký tự.",
     "confirmPassword": "Nhập lại mật khẩu",
     "fullName": "Họ và tên",
     "birthDate": "Ngày sinh",
@@ -111,7 +450,9 @@
       "passwordRequired": "Vui lòng nhập mật khẩu.",
       "passwordMin": "Mật khẩu phải có ít nhất 6 ký tự.",
       "passwordConfirmMismatch": "Mật khẩu nhập lại không khớp.",
-      "birthDateRequired": "Vui lòng chọn ngày sinh."
+      "birthDateRequired": "Vui lòng chọn ngày sinh.",
+      "loginFailed": "Đăng nhập thất bại.",
+      "registerFailed": "Đăng ký thất bại."
     }
   }
 }

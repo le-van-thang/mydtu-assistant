@@ -59,11 +59,11 @@ export async function apiRegister(payload: RegisterPayload) {
   return postJSON<{ ok: true }>("/api/auth/register", payload);
 }
 
+// ✅ khớp với login route mới { ok: true }
 export async function apiLogin(payload: LoginPayload) {
   return postJSON<{ ok: true }>("/api/auth/login", payload);
 }
 
-// ✅ thêm apiMe
 export async function apiMe(): Promise<MeResponse> {
   const res = await fetch("/api/auth/me", {
     method: "GET",
@@ -78,7 +78,6 @@ export async function apiMe(): Promise<MeResponse> {
   return { user: null };
 }
 
-// ✅ thêm apiLogout
 export async function apiLogout(): Promise<{ ok: boolean }> {
   const res = await fetch("/api/auth/logout", {
     method: "POST",
