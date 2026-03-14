@@ -1,3 +1,5 @@
+// path: apps/extension/exam_page.js
+
 (() => {
   const EXAM_LIST_BASE = "https://pdaotao.duytan.edu.vn/EXAM_LIST/";
   const ADAPTER_KEY = "pdaotao_exam_v1";
@@ -7,7 +9,7 @@
     return String(value || "").replace(/\s+/g, " ").trim();
   }
 
-  function absoluteUrl(url) {
+  function toAbsoluteUrl(url) {
     try {
       return new URL(url, EXAM_LIST_BASE).toString();
     } catch {
@@ -18,13 +20,14 @@
   function parsePublishedAtFromText(text) {
     const raw = normalizeSpace(text);
     const match = raw.match(/(\d{2}:\d{2})\s+(\d{2}\/\d{2}\/\d{4})/);
+
     if (!match) return null;
 
     const [, time, date] = match;
     return {
       raw: `${time} ${date}`,
       time,
-      date
+      date,
     };
   }
 
@@ -55,7 +58,7 @@
 
     const patterns = [
       /\b([A-Z]{2,}[A-Z0-9]*\s?\d{2,}[A-Z0-9-]*)\b/,
-      /\b([A-Z]{2,}-[A-Z0-9-]+)\b/
+      /\b([A-Z]{2,}-[A-Z0-9-]+)\b/,
     ];
 
     for (const pattern of patterns) {
@@ -66,44 +69,42 @@
     return "";
   }
 
-  function extractTitleWithoutPublishedAt(text) {
-    return normalizeSpace(text.replace(/\(\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\)\s*$/, ""));
+  function stripPublishedAtTail(text) {
+    return normalizeSpace(
+      text.replace(/\(\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\)\s*$/, "")
+    );
   }
 
   function parseListDocument(doc) {
-    const anchors = Array.from(doc.querySelectorAll("a[href*='EXAM_LIST_Detail']"));
+    const anchors = Array.from(
+      doc.querySelectorAll("a[href*='EXAM_LIST_Detail']")
+    );
+
     const items = [];
 
     for (const anchor of anchors) {
-      const text = normalizeSpace(anchor.textContent || "");
-      if (!text) continue;
-
-      const href = absoluteUrl(anchor.getAttribute("href") || "");
+      const href = toAbsoluteUrl(anchor.getAttribute("href") || "");
       if (!href) continue;
 
+      const text = normalizeSpace(anchor.textContent || "");
       const liText = normalizeSpace(anchor.closest("li")?.textContent || text);
       const sourceText = liText || text;
 
-      const publishedAt = parsePublishedAtFromText(sourceText);
-      const title = extractTitleWithoutPublishedAt(sourceText);
-      const courseCode = extractCourseCode(sourceText);
-      const isNew =
-        !!anchor.closest("li")?.innerHTML?.toLowerCase().includes("new") ||
-        !!sourceText.toLowerCase().includes("new");
-
       items.push({
         detailUrl: href,
-        title,
-        publishedAt,
-        courseCode,
-        isNew,
+        title: stripPublishedAtTail(sourceText),
+        courseCode: extractCourseCode(sourceText),
+        publishedAt: parsePublishedAtFromText(sourceText),
+        isNew:
+          !!anchor.closest("li")?.innerHTML?.toLowerCase().includes("new") ||
+          sourceText.toLowerCase().includes("new"),
         planType: detectPlanType(sourceText),
-        sourceText
+        sourceText,
       });
     }
 
-    const deduped = [];
     const seen = new Set();
+    const deduped = [];
 
     for (const item of items) {
       if (seen.has(item.detailUrl)) continue;
@@ -117,8 +118,8 @@
   function parseDetailDocument(doc, detailUrl) {
     const attachmentAnchors = Array.from(doc.querySelectorAll("a[href]"))
       .map((a) => ({
-        href: absoluteUrl(a.getAttribute("href") || ""),
-        text: normalizeSpace(a.textContent || "")
+        href: toAbsoluteUrl(a.getAttribute("href") || ""),
+        text: normalizeSpace(a.textContent || ""),
       }))
       .filter((a) => a.href && /\.(xlsx|xls)$/i.test(a.href));
 
@@ -128,7 +129,7 @@
       detailUrl,
       attachmentUrl: attachmentAnchors[0]?.href || null,
       attachmentName: attachmentAnchors[0]?.text || null,
-      detailText
+      detailText,
     };
   }
 
@@ -136,7 +137,7 @@
     const res = await fetch(url, {
       method: "GET",
       credentials: "include",
-      cache: "no-store"
+      cache: "no-store",
     });
 
     if (!res.ok) {
@@ -150,9 +151,39 @@
     return new DOMParser().parseFromString(html, "text/html");
   }
 
+  async function blobToBase64(blob) {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onloadend = () => {
+        const result = String(reader.result || "");
+        const commaIndex = result.indexOf(",");
+        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+      };
+
+      reader.onerror = () => reject(new Error("Cannot convert blob to base64"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function fetchAttachmentBase64(url) {
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      throw new Error(`Attachment fetch failed ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    return await blobToBase64(blob);
+  }
+
   async function scrapeExamNotices(options = {}) {
     const maxPages = Math.max(1, Math.min(Number(options.maxPages || 2), 10));
-    const maxItems = Math.max(1, Math.min(Number(options.maxItems || 30), 100));
+    const maxItems = Math.max(1, Math.min(Number(options.maxItems || 24), 60));
 
     const collected = [];
     const seenDetailUrls = new Set();
@@ -184,17 +215,37 @@
         const detailDoc = htmlToDocument(detailHtml);
         const detail = parseDetailDocument(detailDoc, item.detailUrl);
 
+        let attachmentBase64 = null;
+
+        if (detail.attachmentUrl) {
+          try {
+            attachmentBase64 = await fetchAttachmentBase64(detail.attachmentUrl);
+          } catch (attachmentError) {
+            enriched.push({
+              ...item,
+              ...detail,
+              attachmentBase64: null,
+              attachmentError: String(
+                attachmentError?.message || attachmentError
+              ),
+            });
+            continue;
+          }
+        }
+
         enriched.push({
           ...item,
-          ...detail
+          ...detail,
+          attachmentBase64,
         });
       } catch (error) {
         enriched.push({
           ...item,
           attachmentUrl: null,
           attachmentName: null,
+          attachmentBase64: null,
           detailText: "",
-          detailError: String(error?.message || error)
+          detailError: String(error?.message || error),
         });
       }
     }
@@ -204,11 +255,11 @@
       adapterVersion: ADAPTER_VERSION,
       sourcePage: `${EXAM_LIST_BASE}?page=1&lang=VN`,
       scrapedAt: new Date().toISOString(),
-      notices: enriched
+      notices: enriched,
     };
   }
 
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (!msg || msg.type !== "SCRAPE_EXAMS") return;
 
     (async () => {
@@ -218,7 +269,7 @@
       } catch (error) {
         sendResponse({
           ok: false,
-          error: String(error?.message || error)
+          error: String(error?.message || error),
         });
       }
     })();

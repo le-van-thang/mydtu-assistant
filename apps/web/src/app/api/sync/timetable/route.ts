@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   const baseUrl = process.env.API_BASE_URL;
   if (!baseUrl) {
     return new Response(
@@ -35,16 +35,17 @@ export async function GET(req: Request) {
     );
   }
 
-  const url = new URL(req.url);
-  const qs = url.searchParams.toString();
-  const upstreamUrl = `${baseUrl}/sync/timetable${qs ? `?${qs}` : ""}`;
+  const body = await req.text();
+  const upstreamUrl = `${baseUrl}/sync/timetable`;
 
   try {
     const upstream = await fetch(upstreamUrl, {
-      method: "GET",
+      method: "POST",
       headers: {
+        "content-type": "application/json",
         authorization: `Bearer ${token}`,
       },
+      body,
       cache: "no-store",
     });
 

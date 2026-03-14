@@ -80,7 +80,7 @@ function toDayOfWeek(value: unknown): number | null {
 
 function buildImportBody(
   rawPayload: unknown,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): ImportBody {
   if (!isObject(rawPayload)) {
     throw new Error(t("timetable.sync.invalidPayload"));
@@ -88,8 +88,9 @@ function buildImportBody(
 
   const payload = rawPayload as RawExtensionPayload;
 
-  const adapterKey = toNonEmptyString(payload.adapterKey) || "mydtu_timetable_v1";
-  const adapterVersion = toNonEmptyString(payload.adapterVersion) || "1.2.0";
+  const adapterKey =
+    toNonEmptyString(payload.adapterKey) || "mydtu_timetable_v1";
+  const adapterVersion = toNonEmptyString(payload.adapterVersion) || "1.4.0";
   const semester = toNonEmptyString(payload.semester) || "MYDTU_TIMETABLE";
   const sourcePage =
     toNonEmptyString(payload.sourcePage) ||
@@ -152,8 +153,19 @@ function buildImportBody(
   };
 }
 
+function buildSuccessMessage(
+  language: string,
+  totalItems: number,
+  totalWeeks: number,
+) {
+  if (language === "en") {
+    return `Synced successfully ${totalItems} classes across ${totalWeeks} weeks.`;
+  }
+  return `Đã đồng bộ thành công ${totalItems} buổi học trong ${totalWeeks} tuần.`;
+}
+
 export default function SyncTimetableButton() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [tone, setTone] = useState<"info" | "success" | "error">("info");
@@ -174,11 +186,12 @@ export default function SyncTimetableButton() {
 
       const importBody = buildImportBody(res.payload, t);
 
-      const upstream = await fetch("/api/import", {
+      const upstream = await fetch("/api/sync/timetable", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(importBody),
         cache: "no-store",
+        credentials: "include",
       });
 
       const json = await upstream.json().catch(() => null);
@@ -186,29 +199,22 @@ export default function SyncTimetableButton() {
       if (!upstream.ok) {
         setTone("error");
         setMsg(
-          json?.error
-            ? t("timetable.sync.importFailedWithReason", { reason: json.error })
-            : t("timetable.sync.importFailedWithStatus", {
-                status: upstream.status,
-              })
+          json?.message ||
+            json?.error ||
+            t("timetable.sync.importFailedWithStatus", {
+              status: upstream.status,
+            }),
         );
         return;
       }
 
-      const totalWeeks = Number(
-        (res.payload as any)?.meta?.totalWeeks || 0
-      );
+      const totalWeeks = Number((res.payload as any)?.meta?.totalWeeks || 0);
       const totalItems = Number(
-        (res.payload as any)?.meta?.totalItems || importBody.items.length
+        (res.payload as any)?.meta?.totalItems || importBody.items.length,
       );
 
       setTone("success");
-      setMsg(
-        t("timetable.sync.success", {
-          totalItems,
-          totalWeeks,
-        })
-      );
+      setMsg(buildSuccessMessage(i18n.language, totalItems, totalWeeks));
 
       window.dispatchEvent(new CustomEvent("mydtu:timetable-updated"));
     } catch (e) {
@@ -219,6 +225,28 @@ export default function SyncTimetableButton() {
     }
   }
 
+  const messageStyle =
+    tone === "success"
+      ? {
+          background: "#dcfce7",
+          color: "#166534",
+          border: "1px solid #86efac",
+          fontWeight: 700,
+        }
+      : tone === "error"
+        ? {
+            background: "#fee2e2",
+            color: "#b91c1c",
+            border: "1px solid #fca5a5",
+            fontWeight: 700,
+          }
+        : {
+            background: "#dbeafe",
+            color: "#1d4ed8",
+            border: "1px solid #93c5fd",
+            fontWeight: 700,
+          };
+
   return (
     <div className="flex flex-col items-end gap-2">
       <button
@@ -227,19 +255,13 @@ export default function SyncTimetableButton() {
         disabled={loading}
         className="app-btn-primary rounded-2xl px-4 py-2 text-sm font-semibold disabled:opacity-60"
       >
-        {loading ? t("timetable.sync.syncing") : t("timetable.actions.syncExtension")}
+        {loading
+          ? t("timetable.sync.syncing")
+          : t("timetable.actions.syncExtension")}
       </button>
 
       {msg ? (
-        <div
-          className={`rounded-xl px-3 py-2 text-sm ${
-            tone === "success"
-              ? "bg-[var(--success-soft)] text-[var(--success)]"
-              : tone === "error"
-              ? "bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "bg-[var(--accent-soft)] text-[var(--accent)]"
-          }`}
-        >
+        <div className="rounded-xl px-3 py-2 text-sm" style={messageStyle}>
           {msg}
         </div>
       ) : null}

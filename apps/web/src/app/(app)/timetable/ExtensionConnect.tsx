@@ -1,4 +1,3 @@
-// path: apps/web/src/app/(app)/timetable/ExtensionConnect.tsx
 "use client";
 
 import React from "react";
@@ -18,6 +17,7 @@ type ConnectStatus =
   | "connected"
   | "not_connected"
   | "degraded"
+  | "stale_extension"
   | "error";
 
 const WEB_SOURCE = "mydtu-assistant-web";
@@ -32,11 +32,23 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function isTimeoutError(error: unknown) {
-  const message = String((error as Error)?.message || error || "").toLowerCase();
+  const message = String(
+    (error as Error)?.message || error || "",
+  ).toLowerCase();
   return (
     message.includes("timeout") ||
     message.includes("did not respond in time") ||
     message.includes("did not respond")
+  );
+}
+
+function isInvalidatedExtensionError(error: unknown) {
+  const message = String(
+    (error as Error)?.message || error || "",
+  ).toLowerCase();
+  return (
+    message.includes("extension context invalidated") ||
+    message.includes("context invalidated")
   );
 }
 
@@ -62,7 +74,7 @@ function normalizeExtResponse(value: unknown): ExtResponse | null {
 function sendToExtension(
   action: string,
   payload?: unknown,
-  timeoutMs = DEFAULT_TIMEOUT_MS
+  timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<ExtResponse> {
   const requestId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
@@ -111,7 +123,7 @@ function sendToExtension(
         action,
         payload: payload ?? null,
       },
-      "*"
+      "*",
     );
   });
 }
@@ -124,7 +136,7 @@ async function checkSessionWithRetry() {
       const response = await sendToExtension(
         "MYDTU_CHECK_SESSION",
         null,
-        DEFAULT_TIMEOUT_MS
+        DEFAULT_TIMEOUT_MS,
       );
 
       if (!response.ok) {
@@ -147,13 +159,18 @@ async function checkSessionWithRetry() {
 }
 
 export default function ExtensionConnect() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [status, setStatus] = React.useState<ConnectStatus>("idle");
   const [message, setMessage] = React.useState<string>("");
   const [busyAction, setBusyAction] = React.useState<"open" | "check" | null>(
-    null
+    null,
   );
+
+  const staleMessage =
+    i18n.language === "en"
+      ? "The extension was reloaded or updated. Please reload the extension in Chrome and hard refresh this page."
+      : "Tiện ích đã bị reload hoặc cập nhật. Hãy tải lại extension trong Chrome rồi hard refresh trang này.";
 
   const meta = React.useMemo(() => {
     switch (status) {
@@ -165,12 +182,17 @@ export default function ExtensionConnect() {
         return { label: t("timetable.summary.notChecked"), tone: "warning" };
       case "degraded":
         return { label: t("common.unknown"), tone: "warning" };
+      case "stale_extension":
+        return {
+          label: i18n.language === "en" ? "Extension stale" : "Extension cũ",
+          tone: "warning",
+        };
       case "error":
         return { label: t("settings.saveState.error"), tone: "error" };
       default:
         return { label: t("timetable.summary.notChecked"), tone: "info" };
     }
-  }, [status, t]);
+  }, [status, t, i18n.language]);
 
   async function handleOpenLogin() {
     if (busyAction) return;
@@ -187,13 +209,18 @@ export default function ExtensionConnect() {
 
       setStatus((prev) => (prev === "connected" ? prev : "idle"));
       setMessage(
-        t("timetable.actions.connectMyDtu") +
-          " OK. " +
-          t("timetable.actions.checkConnection")
+        i18n.language === "en"
+          ? "MYDTU login page opened. Please log in there, then click Check connection."
+          : "Đã mở trang đăng nhập MYDTU. Hãy đăng nhập bên đó rồi bấm Kiểm tra kết nối.",
       );
     } catch (error) {
-      setStatus("error");
-      setMessage(String((error as Error)?.message || error));
+      if (isInvalidatedExtensionError(error)) {
+        setStatus("stale_extension");
+        setMessage(staleMessage);
+      } else {
+        setStatus("error");
+        setMessage(String((error as Error)?.message || error));
+      }
     } finally {
       setBusyAction(null);
     }
@@ -212,15 +239,28 @@ export default function ExtensionConnect() {
 
       if (connected) {
         setStatus("connected");
-        setMessage(t("timetable.summary.connected"));
+        setMessage(
+          i18n.language === "en"
+            ? "Connection verified successfully."
+            : "Kiểm tra kết nối thành công.",
+        );
       } else {
         setStatus("not_connected");
-        setMessage(t("timetable.summary.notChecked"));
+        setMessage(
+          i18n.language === "en" ? "Not connected yet." : "Chưa kết nối.",
+        );
       }
     } catch (error) {
-      if (isTimeoutError(error)) {
+      if (isInvalidatedExtensionError(error)) {
+        setStatus("stale_extension");
+        setMessage(staleMessage);
+      } else if (isTimeoutError(error)) {
         setStatus("degraded");
-        setMessage(t("common.unknown"));
+        setMessage(
+          i18n.language === "en"
+            ? "The extension responded too slowly."
+            : "Extension phản hồi quá chậm.",
+        );
       } else {
         setStatus("error");
         setMessage(String((error as Error)?.message || error));
@@ -230,6 +270,35 @@ export default function ExtensionConnect() {
     }
   }
 
+  const badgeStyle =
+    meta.tone === "success"
+      ? {
+          background: "#d1fae5",
+          color: "#047857",
+          border: "1px solid #a7f3d0",
+          fontWeight: 700,
+        }
+      : meta.tone === "warning"
+        ? {
+            background: "#fef3c7",
+            color: "#b45309",
+            border: "1px solid #fcd34d",
+            fontWeight: 700,
+          }
+        : meta.tone === "error"
+          ? {
+              background: "#fee2e2",
+              color: "#b91c1c",
+              border: "1px solid #fca5a5",
+              fontWeight: 700,
+            }
+          : {
+              background: "#dbeafe",
+              color: "#1d4ed8",
+              border: "1px solid #93c5fd",
+              fontWeight: 700,
+            };
+
   return (
     <div className="app-card rounded-3xl p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -238,7 +307,7 @@ export default function ExtensionConnect() {
             type="button"
             onClick={handleOpenLogin}
             disabled={busyAction !== null}
-            className="app-btn rounded-2xl px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-btn rounded-2xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busyAction === "open"
               ? t("common.loading")
@@ -249,7 +318,7 @@ export default function ExtensionConnect() {
             type="button"
             onClick={handleCheck}
             disabled={busyAction !== null}
-            className="app-btn-primary rounded-2xl px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+            className="app-btn-primary rounded-2xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busyAction === "check"
               ? t("common.loading")
@@ -257,22 +326,16 @@ export default function ExtensionConnect() {
           </button>
         </div>
 
-        <div
-          className={`rounded-2xl px-3 py-2 text-sm font-medium ${
-            meta.tone === "success"
-              ? "bg-[var(--success-soft)] text-[var(--success)]"
-              : meta.tone === "warning"
-              ? "bg-[var(--warning-soft)] text-[var(--warning)]"
-              : meta.tone === "error"
-              ? "bg-[var(--danger-soft)] text-[var(--danger)]"
-              : "bg-[var(--accent-soft)] text-[var(--accent)]"
-          }`}
-        >
+        <div className="rounded-2xl px-3 py-2 text-sm" style={badgeStyle}>
           {t("timetable.summary.connectionStatus")}: {meta.label}
         </div>
       </div>
 
-      {message ? <div className="mt-3 text-sm text-[var(--text-soft)]">{message}</div> : null}
+      {message ? (
+        <div className="mt-3 text-sm font-medium text-[var(--text-main)]">
+          {message}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+// path: apps/api/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -41,6 +43,17 @@ enum SchoolType {
   other
 }
 
+enum ExamPlanType {
+  tentative
+  official
+}
+
+enum ExamParseStatus {
+  parsed
+  partial
+  failed
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -57,10 +70,14 @@ model User {
 
   settings    UserSettings?
   imports     ImportSession[]
+
   transcripts Transcript[]
   timetables  Timetable[]
   sections    ClassSection[]
   evaluations EvaluationDraft[]
+
+  examNotices ExamNotice[]
+  examRecords ExamRecord[]
 }
 
 model UserSettings {
@@ -116,6 +133,8 @@ model ImportSession {
   timetables     Timetable[]
   sections       ClassSection[]
   evaluations    EvaluationDraft[]
+  examNotices    ExamNotice[]
+  examRecords    ExamRecord[]
 
   @@unique([userId, adapterKey, adapterVersion, payloadHash], name: "uq_importsession_idempotent")
   @@index([userId, startedAt])
@@ -196,60 +215,179 @@ model Timetable {
 }
 
 model ClassSection {
-  id            String      @id @default(cuid())
-  userId        String
-  importId      String?
+  id             String      @id @default(cuid())
+  userId         String
+  importId       String?
 
-  semester      String
-  classCode     String
-  courseCode    String
-  credits       Int
-  type          SectionType @default(OTHER)
+  semester       String
+  classCode      String
+  courseCode     String
+  credits        Int
+  type           SectionType @default(OTHER)
 
   capacityStatus String
-  note          String?
+  note           String?
 
-  scheduleSlots Json?
-  weeksIncluded String?
-  weeksCanceled String?
+  scheduleSlots  Json?
+  weeksIncluded  String?
+  weeksCanceled  String?
 
   adapterKey     String
   adapterVersion String
   sourcePage     String
   lastSyncedAt   DateTime @default(now())
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  import        ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import         ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
 
   @@unique([userId, semester, classCode], name: "uq_section_natural")
   @@index([userId, semester])
 }
 
 model EvaluationDraft {
-  id          String @id @default(cuid())
-  userId      String
-  importId    String?
+  id             String @id @default(cuid())
+  userId         String
+  importId       String?
 
-  semester    String
-  lecturer    String
-  courseCode  String
-  courseName  String?
+  semester       String
+  lecturer       String
+  courseCode     String
+  courseName     String?
 
-  answers     Json
+  answers        Json
 
   adapterKey     String
   adapterVersion String
   sourcePage     String
   lastSyncedAt   DateTime @default(now())
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  import      ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import         ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
 
   @@index([userId, semester])
+}
+
+model ExamNotice {
+  id               String          @id @default(cuid())
+  userId           String
+  importId         String?
+
+  planType         ExamPlanType    @default(official)
+  parseStatus      ExamParseStatus @default(parsed)
+
+  title            String
+  rawTitle         String?
+  sourceText       String?         @db.Text
+  courseCodeHint   String?
+  courseNameHint   String?
+
+  detailUrl        String
+  attachmentUrl    String?
+  attachmentName   String?
+
+  publishedAtRaw   String?
+  publishedAt      DateTime?
+
+  sourcePage       String
+  adapterKey       String
+  adapterVersion   String
+
+  noticeHash       String
+  isLatest         Boolean         @default(true)
+  isSuperseded     Boolean         @default(false)
+  supersededAt     DateTime?
+  supersededReason String?
+
+  detailText       String?         @db.Text
+  parseError       String?         @db.Text
+  lastSyncedAt     DateTime        @default(now())
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import           ImportSession?  @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  records          ExamRecord[]
+
+  @@unique([userId, noticeHash], name: "uq_exam_notice_hash")
+  @@unique([userId, detailUrl], name: "uq_exam_notice_detail")
+  @@index([userId, planType, isLatest])
+  @@index([userId, publishedAt])
+  @@index([userId, title])
+  @@index([userId, courseCodeHint])
+}
+
+model ExamRecord {
+  id               String          @id @default(cuid())
+  userId           String
+  importId         String?
+  noticeId         String?
+
+  planType         ExamPlanType    @default(official)
+  parseStatus      ExamParseStatus @default(parsed)
+
+  noticeTitle      String
+  publishedAtRaw   String?
+  publishedAtDate  DateTime?
+
+  detailUrl        String
+  attachmentUrl    String?
+  attachmentName   String?
+
+  courseCode       String
+  courseName       String?
+
+  examDate         DateTime?
+  examDateRaw      String?
+  startTime        String?
+  endTime          String?
+
+  room             String?
+  campus           String?
+  examMetaRaw      String?         @db.Text
+
+  studentId        String?
+  studentName      String?
+  classCourse      String?
+  classStudent     String?
+  birthDateRaw     String?
+  birthDate        DateTime?
+  note             String?
+
+  recordHash       String
+  rawRow           Json?
+
+  isLatest         Boolean         @default(true)
+  isSuperseded     Boolean         @default(false)
+  supersededAt     DateTime?
+  supersededReason String?
+
+  sourcePage       String
+  adapterKey       String
+  adapterVersion   String
+  parseError       String?         @db.Text
+  lastSyncedAt     DateTime        @default(now())
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import           ImportSession?  @relation(fields: [importId], references: [id], onDelete: SetNull)
+  notice           ExamNotice?     @relation(fields: [noticeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, recordHash], name: "uq_exam_record_hash")
+  @@index([userId, planType, examDate])
+  @@index([userId, courseCode])
+  @@index([userId, studentId])
+  @@index([userId, studentName])
+  @@index([userId, examDate])
+  @@index([userId, isLatest, isSuperseded])
+  @@index([noticeId])
 }

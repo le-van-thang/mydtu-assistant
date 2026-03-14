@@ -11,7 +11,22 @@ export function createApp() {
 
   app.use(helmet());
   app.use(cors({ origin: true, credentials: true }));
-  app.use(express.json({ limit: "2mb" }));
+
+  // Tăng giới hạn body để tránh lỗi PayloadTooLargeError
+  app.use(
+    express.json({
+      limit: "15mb",
+    })
+  );
+
+  app.use(
+    express.urlencoded({
+      extended: true,
+      limit: "15mb",
+      parameterLimit: 50000,
+    })
+  );
+
   app.use(requestLogger);
 
   app.get("/", (_req, res) => {
@@ -22,8 +37,19 @@ export function createApp() {
 
   app.use((err: any, _req: any, res: any, _next: any) => {
     if (err instanceof ZodError) {
-      return res.status(400).json({ error: "VALIDATION_ERROR", details: err.errors });
+      return res.status(400).json({
+        error: "VALIDATION_ERROR",
+        details: err.errors,
+      });
     }
+
+    if (err?.type === "entity.too.large") {
+      return res.status(413).json({
+        error: "PAYLOAD_TOO_LARGE",
+        message: "Request body is too large.",
+      });
+    }
+
     if (err?.code === "P2002") {
       return res.status(409).json({
         error: "DUPLICATE",
@@ -31,9 +57,14 @@ export function createApp() {
         meta: err?.meta,
       });
     }
+
     const status = Number(err?.status ?? 500);
     console.error(err);
-    res.status(status).json({ error: "INTERNAL_ERROR", message: err?.message ?? "Error" });
+
+    return res.status(status).json({
+      error: "INTERNAL_ERROR",
+      message: err?.message ?? "Error",
+    });
   });
 
   return app;

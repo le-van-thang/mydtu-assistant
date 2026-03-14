@@ -27,6 +27,35 @@ export type TimetableSyncPayload = {
   };
 };
 
+export type ExamNoticeFromExtension = {
+  detailUrl: string;
+  title: string;
+  courseCode: string;
+  courseName?: string | null;
+  isNew: boolean;
+  planType: "tentative" | "official";
+  publishedAt: {
+    raw: string;
+    time: string;
+    date: string;
+  } | null;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentBase64: string | null;
+  detailText?: string;
+  detailError?: string;
+  attachmentError?: string;
+  sourceText?: string;
+};
+
+export type ExamSyncPayload = {
+  adapterKey: string;
+  adapterVersion: string;
+  sourcePage: string;
+  scrapedAt: string;
+  notices: ExamNoticeFromExtension[];
+};
+
 export type ExtensionResponse<T = unknown> = {
   source: "mydtu-assistant-extension";
   requestId: string;
@@ -37,7 +66,7 @@ export type ExtensionResponse<T = unknown> = {
 
 const WEB_SOURCE = "mydtu-assistant-web";
 const EXT_SOURCE = "mydtu-assistant-extension";
-const DEFAULT_TIMEOUT_MS = 240000;
+const DEFAULT_TIMEOUT_MS = 300000;
 
 function makeRequestId() {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -47,7 +76,7 @@ function sendToExtension<T = unknown>(
   action: string,
   payload?: unknown,
   timeoutMs = DEFAULT_TIMEOUT_MS,
-  timeoutMessage = "Extension did not respond (timeout)."
+  timeoutMessage = "Extension did not respond (timeout).",
 ): Promise<ExtensionResponse<T>> {
   const requestId = makeRequestId();
 
@@ -58,6 +87,8 @@ function sendToExtension<T = unknown>(
     }, timeoutMs);
 
     function onMessage(event: MessageEvent) {
+      if (event.source !== window) return;
+
       const msg = event.data as ExtensionResponse<T>;
       if (!msg || typeof msg !== "object") return;
       if (msg.source !== EXT_SOURCE) return;
@@ -77,14 +108,14 @@ function sendToExtension<T = unknown>(
         action,
         payload: payload ?? null,
       },
-      "*"
+      "*",
     );
   });
 }
 
 export async function requestSyncFromExtension(
   scope: "timetable",
-  t?: (key: string, options?: Record<string, unknown>) => string
+  t?: (key: string, options?: Record<string, unknown>) => string,
 ) {
   if (scope !== "timetable") {
     return {
@@ -103,20 +134,24 @@ export async function requestSyncFromExtension(
         lookBackWeeks: 0,
       },
       DEFAULT_TIMEOUT_MS,
-      t ? t("timetable.sync.timeout") : "Extension did not respond (timeout)."
+      t ? t("timetable.sync.timeout") : "Extension did not respond (timeout).",
     );
 
     if (!res.ok) {
       return {
         ok: false as const,
-        error: res.error || (t ? t("timetable.sync.extensionFailed") : "Extension sync failed"),
+        error:
+          res.error ||
+          (t ? t("timetable.sync.extensionFailed") : "Extension sync failed"),
       };
     }
 
     if (!res.data) {
       return {
         ok: false as const,
-        error: t ? t("timetable.sync.emptyResponse") : "Extension returned empty data.",
+        error: t
+          ? t("timetable.sync.emptyResponse")
+          : "Extension returned empty data.",
       };
     }
 
@@ -131,3 +166,72 @@ export async function requestSyncFromExtension(
     };
   }
 }
+
+export async function requestExamSync(options?: {
+  maxPages?: number;
+  maxItems?: number;
+}) {
+  try {
+    const res = await sendToExtension<ExamSyncPayload>(
+      "MYDTU_SYNC_EXAMS",
+      {
+        maxPages: options?.maxPages ?? 2,
+        maxItems: options?.maxItems ?? 24,
+      },
+      DEFAULT_TIMEOUT_MS,
+      "Extension background did not respond in time.",
+    );
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: res.error || "Extension exam sync failed.",
+      };
+    }
+
+    if (!res.data) {
+      return {
+        ok: false as const,
+        error: "Extension returned empty exam data.",
+      };
+    }
+
+    return {
+      ok: true as const,
+      payload: res.data,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}
+
+export async function openExamPageInExtension() {
+  try {
+    const res = await sendToExtension<{ tabId: number; reused: boolean }>(
+      "MYDTU_OPEN_EXAM_PAGE",
+      null,
+      30000,
+      "Open exam page timeout.",
+    );
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: res.error || "Cannot open exam page.",
+      };
+    }
+
+    return {
+      ok: true as const,
+      payload: res.data ?? null,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+} 
