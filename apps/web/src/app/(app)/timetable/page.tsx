@@ -1,6 +1,5 @@
 "use client";
 
-import InAppNotice from "@/components/common/InAppNotice";
 import SyncTimetableButton from "@/components/SyncTimetableButton";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -54,6 +53,15 @@ type MonthCell = {
   isToday: boolean;
 };
 
+type ToastTone = "success" | "info" | "warning" | "error";
+
+type AppToast = {
+  id: string;
+  tone: ToastTone;
+  title: string;
+  message?: string;
+};
+
 export default function TimetablePage() {
   const { t, i18n } = useTranslation();
 
@@ -66,8 +74,28 @@ export default function TimetablePage() {
   const [meta, setMeta] = useState<ApiResponse["meta"] | null>(null);
   const [campusFilter, setCampusFilter] = useState("all");
   const [courseFilter, setCourseFilter] = useState("");
+  const [toasts, setToasts] = useState<AppToast[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   const selectedDateInputValue = formatDateInputValue(selectedDate);
+
+  function pushToast(
+    tone: ToastTone,
+    title: string,
+    message?: string,
+    duration = 3600,
+  ) {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setToasts((prev) => [...prev, { id, tone, title, message }]);
+
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id));
+    }, duration);
+  }
+
+  function removeToast(id: string) {
+    setToasts((prev) => prev.filter((item) => item.id !== id));
+  }
 
   async function load(mode = viewMode, date = selectedDate) {
     setLoading(true);
@@ -115,7 +143,18 @@ export default function TimetablePage() {
 
   useEffect(() => {
     const onUpdated = () => {
-      setSyncMessage(t("timetable.sync.successSimple"));
+      const successText = t("timetable.sync.successSimple");
+      setSyncMessage(successText);
+      setSyncing(false);
+      pushToast(
+        "success",
+        i18n.language === "en"
+          ? "Sync successful"
+          : "Đồng bộ thời khoá biểu thành công",
+        i18n.language === "en"
+          ? "The latest timetable data has been updated from the extension."
+          : "Dữ liệu thời khoá biểu mới nhất đã được cập nhật từ extension.",
+      );
       void load(viewMode, selectedDate);
     };
 
@@ -123,7 +162,7 @@ export default function TimetablePage() {
     return () => {
       window.removeEventListener("mydtu:timetable-updated", onUpdated);
     };
-  }, [viewMode, selectedDate, t]);
+  }, [viewMode, selectedDate, t, i18n.language]);
 
   const today = startOfToday();
 
@@ -157,7 +196,7 @@ export default function TimetablePage() {
       filteredItems.filter((item) => {
         const d = parseOccurrenceDate(item.occurrenceDate);
         return d ? isSameDate(d, today) : false;
-      })
+      }),
     );
   }, [filteredItems, today]);
 
@@ -171,7 +210,7 @@ export default function TimetablePage() {
             filteredItems.filter((item) => {
               const d = parseOccurrenceDate(item.occurrenceDate);
               return d ? isSameDate(d, selectedDate) : false;
-            })
+            }),
           ),
         },
       ];
@@ -194,7 +233,7 @@ export default function TimetablePage() {
       const end = endOfWeek(selectedDate);
       return `${formatShortDate(start, i18n.language)} - ${formatShortDate(
         end,
-        i18n.language
+        i18n.language,
       )}`;
     }
 
@@ -205,6 +244,32 @@ export default function TimetablePage() {
   const lastSyncedText = meta?.lastSyncedAt
     ? formatDateTime(new Date(meta.lastSyncedAt), i18n.language)
     : t("common.noData");
+
+  const syncStatusTone =
+    meta?.lastSyncStatus === "SUCCESS"
+      ? "success"
+      : meta?.lastSyncStatus === "PARTIAL"
+        ? "warning"
+        : meta?.lastSyncStatus === "FAILED"
+          ? "error"
+          : "info";
+
+  const syncStatusLabel =
+    meta?.lastSyncStatus === "SUCCESS"
+      ? i18n.language === "en"
+        ? "Successful"
+        : "Thành công"
+      : meta?.lastSyncStatus === "PARTIAL"
+        ? i18n.language === "en"
+          ? "Partial"
+          : "Một phần"
+        : meta?.lastSyncStatus === "FAILED"
+          ? i18n.language === "en"
+            ? "Failed"
+            : "Thất bại"
+          : i18n.language === "en"
+            ? "Not checked"
+            : "Chưa có";
 
   function handlePrev() {
     if (viewMode === "day") {
@@ -238,441 +303,754 @@ export default function TimetablePage() {
     setSelectedDate(startOfToday());
   }
 
+  function handleSyncClick() {
+    setSyncing(true);
+    setSyncMessage(null);
+
+    pushToast(
+      "info",
+      i18n.language === "en" ? "Sync started" : "Đang bắt đầu đồng bộ",
+      i18n.language === "en"
+        ? "Please wait while timetable data is fetched from the extension."
+        : "Vui lòng chờ trong lúc hệ thống lấy dữ liệu thời khoá biểu từ extension.",
+      2500,
+    );
+
+    window.setTimeout(() => {
+      setSyncing(false);
+    }, 5000);
+  }
+
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("timetable.title")}</h1>
-          <p className="mt-1 text-sm app-text-muted">{t("timetable.subtitle")}</p>
-        </div>
+    <>
+      <ToastViewport toasts={toasts} onClose={removeToast} />
 
-        <div className="flex flex-col items-start gap-2 lg:items-end">
-          <SyncTimetableButton />
-          <button
-            type="button"
-            onClick={() => void load(viewMode, selectedDate)}
-            className="text-sm font-medium hover:underline"
-            style={{ color: "var(--accent)" }}
-          >
-            {t("timetable.actions.reloadData")}
-          </button>
-          {syncMessage ? (
-            <div className="text-sm" style={{ color: "var(--success)" }}>
-              {syncMessage}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {noClassToday ? (
-        <InAppNotice
-          tone="warning"
-          title={t("timetable.summary.todayNotice")}
-          message={t("timetable.notice.noClassToday")}
-        />
-      ) : (
-        <InAppNotice
-          tone="success"
-          title={t("timetable.summary.todayNotice")}
-          message={t("timetable.notice.hasClassToday", { count: todayItems.length })}
-        />
-      )}
-
-      {meta?.lastSyncStatus ? (
-        <InAppNotice
-          tone={
-            meta.lastSyncStatus === "SUCCESS"
-              ? "success"
-              : meta.lastSyncStatus === "PARTIAL"
-              ? "warning"
-              : "error"
+      <style jsx global>{`
+        @keyframes toastShrink {
+          from {
+            width: 100%;
           }
-          title={t("timetable.summary.syncStatus")}
-          message={
-            meta.lastSyncStatus === "SUCCESS"
-              ? t("timetable.labels.successfulSync", { time: lastSyncedText })
-              : meta.lastSyncStatus === "PARTIAL"
-              ? t("timetable.labels.partialSync", { time: lastSyncedText })
-              : t("timetable.labels.lastSyncFailed")
+          to {
+            width: 0%;
           }
-        />
-      ) : null}
+        }
 
-      <ExtensionConnect />
+        .syncing-timetable-button button {
+          background: linear-gradient(
+            180deg,
+            #ef4444 0%,
+            #dc2626 100%
+          ) !important;
+          border-color: transparent !important;
+          color: #ffffff !important;
+          box-shadow: 0 14px 30px rgba(239, 68, 68, 0.3) !important;
+        }
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-4">
-          <div className="app-card rounded-3xl p-4">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrev}
-                  className="app-btn rounded-2xl px-3 py-2 text-sm font-medium"
-                  aria-label={t("timetable.labels.viewPrevious")}
-                  title={t("timetable.labels.viewPrevious")}
-                >
-                  ←
-                </button>
+        .syncing-timetable-button button:hover {
+          filter: brightness(1.03);
+        }
+      `}</style>
 
-                <div className="min-w-56 text-lg font-semibold">{periodLabel}</div>
-
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="app-btn rounded-2xl px-3 py-2 text-sm font-medium"
-                  aria-label={t("timetable.labels.viewNext")}
-                  title={t("timetable.labels.viewNext")}
-                >
-                  →
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToday}
-                  className="app-btn-primary rounded-2xl px-4 py-2 text-sm font-medium"
-                >
-                  {t("common.today")}
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <label htmlFor="timetable-date" className="sr-only">
-                  {t("timetable.labels.selectDate")}
-                </label>
-                <input
-                  id="timetable-date"
-                  type="date"
-                  value={selectedDateInputValue}
-                  onChange={(e) =>
-                    setSelectedDate(parseDateInputValue(e.target.value))
-                  }
-                  className="app-input rounded-2xl px-3 py-2 text-sm outline-none"
-                />
-
-                <div className="app-card-strong flex rounded-2xl p-1">
-                  <ModeButton
-                    active={viewMode === "day"}
-                    onClick={() => setViewMode("day")}
-                    label={t("timetable.viewMode.day")}
-                  />
-                  <ModeButton
-                    active={viewMode === "week"}
-                    onClick={() => setViewMode("week")}
-                    label={t("timetable.viewMode.week")}
-                  />
-                  <ModeButton
-                    active={viewMode === "month"}
-                    onClick={() => setViewMode("month")}
-                    label={t("timetable.viewMode.month")}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-              <div>
-                <label htmlFor="campus-filter" className="sr-only">
-                  {t("timetable.labels.filterCampus")}
-                </label>
-                <select
-                  id="campus-filter"
-                  value={campusFilter}
-                  onChange={(e) => setCampusFilter(e.target.value)}
-                  className="app-input rounded-2xl px-3 py-2 text-sm outline-none"
-                  title={t("timetable.labels.filterCampus")}
-                >
-                  <option value="all">{t("timetable.filters.allCampuses")}</option>
-                  {campusOptions.map((campus) => (
-                    <option key={campus} value={campus}>
-                      {campus}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="course-filter" className="sr-only">
-                  {t("timetable.filters.searchPlaceholder")}
-                </label>
-                <input
-                  id="course-filter"
-                  value={courseFilter}
-                  onChange={(e) => setCourseFilter(e.target.value)}
-                  placeholder={t("timetable.filters.searchPlaceholder")}
-                  className="app-input rounded-2xl px-3 py-2 text-sm outline-none"
-                />
-              </div>
-            </div>
+      <div className="mx-auto w-full max-w-7xl space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {t("timetable.title")}
+            </h1>
+            <p className="mt-1 text-sm app-text-muted">
+              {t("timetable.subtitle")}
+            </p>
           </div>
 
-          <div className="app-card rounded-3xl p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <div className="text-xl font-semibold">
-                  {viewMode === "day"
-                    ? t("timetable.content.daySchedule")
-                    : viewMode === "week"
-                    ? t("timetable.content.weekSchedule")
-                    : t("timetable.content.monthSchedule")}
-                </div>
-                <div className="mt-1 text-sm app-text-muted">
-                  {viewMode === "month"
-                    ? t("timetable.content.monthOverview")
-                    : t("timetable.content.fullDetails")}
-                </div>
-              </div>
-
-              <div className="text-sm app-text-muted">
-                {loading
-                  ? t("common.loading")
-                  : t("timetable.content.classes", { count: filteredItems.length })}
-              </div>
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            <div
+              onClickCapture={handleSyncClick}
+              className={syncing ? "syncing-timetable-button" : ""}
+            >
+              <SyncTimetableButton />
             </div>
 
-            {loading ? (
-              <EmptyState text={t("timetable.content.loadingTimetable")} />
-            ) : error ? (
-              <EmptyState text={error} isError />
-            ) : viewMode === "month" ? (
-              <MonthCalendar
-                cells={monthCells}
-                selectedDate={selectedDate}
-                onPickDate={(date) => {
-                  setSelectedDate(date);
-                  setViewMode("day");
+            <button
+              type="button"
+              onClick={() => {
+                pushToast(
+                  "info",
+                  i18n.language === "en"
+                    ? "Reloading data"
+                    : "Đang tải lại dữ liệu",
+                  i18n.language === "en"
+                    ? "Refreshing timetable from the current database snapshot."
+                    : "Đang làm mới thời khoá biểu từ dữ liệu hiện có trong hệ thống.",
+                  2200,
+                );
+                void load(viewMode, selectedDate);
+              }}
+              className="text-sm font-medium hover:underline"
+              style={{ color: "var(--accent)" }}
+            >
+              {t("timetable.actions.reloadData")}
+            </button>
+
+            {syncMessage ? (
+              <div
+                className="rounded-xl px-3 py-2 text-[15px] font-bold"
+                style={{
+                  background: "#dcfce7",
+                  color: "#166534",
+                  border: "1px solid #86efac",
                 }}
-                language={i18n.language}
-                t={t}
-              />
-            ) : groupedForDisplay.every((group) => group.items.length === 0) ? (
-              <EmptyState
-                text={
-                  viewMode === "day"
-                    ? t("timetable.content.emptyDay")
-                    : t("timetable.content.emptyWeek")
-                }
-              />
-            ) : (
-              <div className="space-y-6">
-                {groupedForDisplay.map((group) => (
-                  <div key={group.key}>
-                    <div className="mb-3 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide app-text-soft">
-                        {group.label}
-                      </h3>
-                      <span className="app-pill rounded-full px-2.5 py-1 text-xs font-medium">
-                        {t("timetable.content.classes", { count: group.items.length })}
-                      </span>
-                    </div>
-
-                    {group.items.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed px-4 py-4 text-sm app-text-muted">
-                        {t("timetable.content.noSchedule")}
-                      </div>
-                    ) : (
-                      <div
-                        className="overflow-hidden rounded-3xl border"
-                        style={{ borderColor: "var(--border-main)" }}
-                      >
-                        <div className="overflow-auto">
-                          <table className="w-full text-sm" style={{ minWidth: 1080 }}>
-                            <thead
-                              style={{ background: "var(--bg-soft)" }}
-                              className="app-text-soft"
-                            >
-                              <tr className="text-left">
-                                <th className="px-4 py-3">{t("timetable.table.date")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.weekday")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.time")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.courseCode")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.courseName")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.room")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.campus")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.mode")}</th>
-                                <th className="px-4 py-3">{t("timetable.table.week")}</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {group.items.map((it) => {
-                                const occurrence = parseOccurrenceDate(it.occurrenceDate);
-
-                                return (
-                                  <tr
-                                    key={it.id}
-                                    style={{ borderTop: "1px solid var(--border-main)" }}
-                                  >
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                      {occurrence
-                                        ? formatShortDate(occurrence, i18n.language)
-                                        : "--"}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                      {toWeekdayLabel(it.dayOfWeek, i18n.language)}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                      <span
-                                        className="rounded-xl px-2 py-1 text-xs font-medium"
-                                        style={{ background: "var(--bg-soft)" }}
-                                      >
-                                        {it.startTime} - {it.endTime}
-                                      </span>
-                                    </td>
-                                    <td
-                                      className="px-4 py-3 whitespace-nowrap font-semibold"
-                                      style={{ color: "var(--accent)" }}
-                                    >
-                                      {it.courseCode}
-                                    </td>
-                                    <td className="px-4 py-3">{it.courseName || ""}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">{it.room}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                      {it.campus || ""}
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                      <DeliveryBadge item={it} t={t} />
-                                    </td>
-                                    <td className="px-4 py-3 whitespace-nowrap app-text-soft">
-                                      {it.weekLabel || it.weeksIncluded || it.semester || ""}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+              >
+                {syncMessage}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="app-card rounded-3xl p-4">
-            <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
-              {t("timetable.todayCard.title")}
-            </div>
-            <div className="mt-1 text-lg font-semibold">
-              {formatFullDate(today, i18n.language)}
-            </div>
+        <div className="rounded-[28px] border border-[var(--warning)]/20 bg-[var(--warning)]/10 px-5 py-4 text-sm text-[var(--warning)] shadow-[0_10px_30px_rgba(245,158,11,0.10)]">
+          <div className="font-semibold">
+            {i18n.language === "en" ? "Sync guide" : "Lưu ý đồng bộ"}
+          </div>
+          <div className="mt-2 leading-7 opacity-95">
+            {i18n.language === "en"
+              ? "Step 1: click “Connect MYDTU”. Step 2: click “Check connection”. Step 3: when the connection status shows connected, return here and click “Sync from Extension” to import your latest timetable."
+              : "Bước 1: bấm “Kết nối MYDTU”. Bước 2: bấm “Kiểm tra kết nối”. Bước 3: khi trạng thái hiển thị đã kết nối thì quay lại bấm “Sync từ Extension” để nhập thời khoá biểu mới nhất."}
+          </div>
+        </div>
 
-            {todayItems.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed px-4 py-4 text-sm app-text-muted">
-                {t("timetable.labels.todayNoClass")}
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {todayItems.map((item) => (
-                  <div key={item.id} className="app-card-strong rounded-2xl p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold">
-                          {item.courseName || item.courseCode}
-                        </div>
-                        <div
-                          className="mt-1 text-sm"
-                          style={{ color: "var(--accent)" }}
-                        >
-                          {item.courseCode}
-                        </div>
-                      </div>
-                      <div className="app-pill rounded-xl px-2.5 py-1 text-xs font-semibold">
-                        {item.startTime} - {item.endTime}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <DeliveryBadge item={item} t={t} />
-                    </div>
-
-                    <div className="mt-3 space-y-1 text-sm app-text-soft">
-                      <div>{t("timetable.labels.roomLabel", { value: item.room || "--" })}</div>
-                      <div>
-                        {t("timetable.labels.campusLabel", {
-                          value: item.campus || "--",
-                        })}
-                      </div>
-                      <div>
-                        {t("timetable.labels.weekLabel", {
-                          value: item.weekLabel || item.weeksIncluded || item.semester || "--",
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        <div
+          className="rounded-[28px] px-5 py-4"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(240,253,244,0.78), rgba(220,252,231,0.62))",
+            border: "1px solid rgba(134,239,172,0.55)",
+            boxShadow: "0 8px 20px rgba(34,197,94,0.045)",
+          }}
+        >
+          <div
+            className="font-bold"
+            style={{
+              color: "#14532d",
+              fontSize: "18px",
+              fontWeight: 700,
+            }}
+          >
+            {t("timetable.summary.todayNotice")}
           </div>
 
-          <div className="app-card rounded-3xl p-4">
-            <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
-              {t("timetable.quickOverview.title")}
+          <div
+            className="mt-2"
+            style={{
+              color: "#166534",
+              fontSize: "16px",
+              lineHeight: 1.8,
+              fontWeight: 500,
+            }}
+          >
+            {noClassToday
+              ? t("timetable.notice.noClassToday")
+              : t("timetable.notice.hasClassToday", {
+                  count: todayItems.length,
+                })}
+          </div>
+        </div>
+
+        <ExtensionConnect />
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-4">
+            <div className="app-card rounded-3xl p-4">
+              <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+                <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto">
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="app-btn inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] text-sm font-semibold"
+                    aria-label={t("timetable.labels.viewPrevious")}
+                    title={t("timetable.labels.viewPrevious")}
+                  >
+                    ←
+                  </button>
+
+                  <div className="min-w-0 shrink whitespace-nowrap text-[clamp(1.25rem,1.8vw,1.9rem)] font-bold tracking-tight">
+                    {periodLabel}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="app-btn inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] text-sm font-semibold"
+                    aria-label={t("timetable.labels.viewNext")}
+                    title={t("timetable.labels.viewNext")}
+                  >
+                    →
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToday}
+                    className="app-btn-primary inline-flex h-12 shrink-0 items-center justify-center rounded-[18px] px-5 text-sm font-semibold whitespace-nowrap"
+                  >
+                    {t("common.today")}
+                  </button>
+                </div>
+
+                <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto">
+                  <label htmlFor="timetable-date" className="sr-only">
+                    {t("timetable.labels.selectDate")}
+                  </label>
+
+                  <div className="relative shrink-0">
+                    <input
+                      id="timetable-date"
+                      type="date"
+                      value={selectedDateInputValue}
+                      onChange={(e) =>
+                        setSelectedDate(parseDateInputValue(e.target.value))
+                      }
+                      className="app-input !w-[150px] min-w-[200px] max-w-[150px] h-10 shrink-0 rounded-[16px] pl-3 pr-9 text-[13px] outline-none"
+                    />
+                  </div>
+
+                  <div className="app-card-strong flex shrink-0 rounded-[30px] p-1">
+                    <ModeButton
+                      active={viewMode === "day"}
+                      onClick={() => setViewMode("day")}
+                      label={t("timetable.viewMode.day")}
+                    />
+                    <ModeButton
+                      active={viewMode === "week"}
+                      onClick={() => setViewMode("week")}
+                      label={t("timetable.viewMode.week")}
+                    />
+                    <ModeButton
+                      active={viewMode === "month"}
+                      onClick={() => setViewMode("month")}
+                      label={t("timetable.viewMode.month")}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div>
+                  <label htmlFor="campus-filter" className="sr-only">
+                    {t("timetable.labels.filterCampus")}
+                  </label>
+                  <select
+                    id="campus-filter"
+                    value={campusFilter}
+                    onChange={(e) => setCampusFilter(e.target.value)}
+                    className="app-input rounded-2xl px-3 py-2 text-sm outline-none"
+                    title={t("timetable.labels.filterCampus")}
+                  >
+                    <option value="all">
+                      {t("timetable.filters.allCampuses")}
+                    </option>
+                    {campusOptions.map((campus) => (
+                      <option key={campus} value={campus}>
+                        {campus}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="course-filter" className="sr-only">
+                    {t("timetable.filters.searchPlaceholder")}
+                  </label>
+                  <input
+                    id="course-filter"
+                    value={courseFilter}
+                    onChange={(e) => setCourseFilter(e.target.value)}
+                    placeholder={t("timetable.filters.searchPlaceholder")}
+                    className="app-input rounded-2xl px-3 py-2 text-sm outline-none"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="app-card mt-4 rounded-3xl p-4">
+            <div className="app-card rounded-3xl p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xl font-semibold">
+                    {viewMode === "day"
+                      ? t("timetable.content.daySchedule")
+                      : viewMode === "week"
+                        ? t("timetable.content.weekSchedule")
+                        : t("timetable.content.monthSchedule")}
+                  </div>
+                  <div className="mt-1 text-sm app-text-muted">
+                    {viewMode === "month"
+                      ? t("timetable.content.monthOverview")
+                      : t("timetable.content.fullDetails")}
+                  </div>
+                </div>
+
+                <div className="text-sm app-text-muted">
+                  {loading
+                    ? t("common.loading")
+                    : t("timetable.content.classes", {
+                        count: filteredItems.length,
+                      })}
+                </div>
+              </div>
+
+              {loading ? (
+                <EmptyState text={t("timetable.content.loadingTimetable")} />
+              ) : error ? (
+                <EmptyState text={error} isError />
+              ) : viewMode === "month" ? (
+                <MonthCalendar
+                  cells={monthCells}
+                  selectedDate={selectedDate}
+                  onPickDate={(date) => {
+                    setSelectedDate(date);
+                    setViewMode("day");
+                  }}
+                  language={i18n.language}
+                  t={t}
+                />
+              ) : groupedForDisplay.every(
+                  (group) => group.items.length === 0,
+                ) ? (
+                <EmptyState
+                  text={
+                    viewMode === "day"
+                      ? t("timetable.content.emptyDay")
+                      : t("timetable.content.emptyWeek")
+                  }
+                />
+              ) : (
+                <div className="space-y-6">
+                  {groupedForDisplay.map((group) => (
+                    <div key={group.key}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold uppercase tracking-wide app-text-soft">
+                          {group.label}
+                        </h3>
+                        <span className="app-pill rounded-full px-2.5 py-1 text-xs font-medium">
+                          {t("timetable.content.classes", {
+                            count: group.items.length,
+                          })}
+                        </span>
+                      </div>
+
+                      {group.items.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed px-4 py-4 text-sm app-text-muted">
+                          {t("timetable.content.noSchedule")}
+                        </div>
+                      ) : (
+                        <div
+                          className="overflow-hidden rounded-3xl border"
+                          style={{ borderColor: "var(--border-main)" }}
+                        >
+                          <div className="overflow-auto">
+                            <table
+                              className="w-full text-sm"
+                              style={{ minWidth: 1080 }}
+                            >
+                              <thead
+                                style={{ background: "var(--bg-soft)" }}
+                                className="app-text-soft"
+                              >
+                                <tr className="text-left">
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.date")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.weekday")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.time")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.courseCode")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.courseName")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.room")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.campus")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.mode")}
+                                  </th>
+                                  <th className="px-4 py-3">
+                                    {t("timetable.table.week")}
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {group.items.map((it) => {
+                                  const occurrence = parseOccurrenceDate(
+                                    it.occurrenceDate,
+                                  );
+
+                                  return (
+                                    <tr
+                                      key={it.id}
+                                      style={{
+                                        borderTop:
+                                          "1px solid var(--border-main)",
+                                      }}
+                                    >
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        {occurrence
+                                          ? formatShortDate(
+                                              occurrence,
+                                              i18n.language,
+                                            )
+                                          : "--"}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        {toWeekdayLabel(
+                                          it.dayOfWeek,
+                                          i18n.language,
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        <span
+                                          className="rounded-xl px-2 py-1 text-xs font-medium"
+                                          style={{
+                                            background: "var(--bg-soft)",
+                                          }}
+                                        >
+                                          {it.startTime} - {it.endTime}
+                                        </span>
+                                      </td>
+                                      <td
+                                        className="px-4 py-3 whitespace-nowrap font-semibold"
+                                        style={{ color: "var(--accent)" }}
+                                      >
+                                        {it.courseCode}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        {it.courseName || ""}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        {it.room}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        {it.campus || ""}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap">
+                                        <DeliveryBadge item={it} t={t} />
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap app-text-soft">
+                                        {it.weekLabel ||
+                                          it.weeksIncluded ||
+                                          it.semester ||
+                                          ""}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="app-card rounded-3xl p-4">
               <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
-                {t("timetable.quickOverview.colorLegend")}
+                {t("timetable.todayCard.title")}
+              </div>
+              <div className="mt-1 text-lg font-semibold">
+                {formatFullDate(today, i18n.language)}
               </div>
 
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="app-badge-online rounded-full px-2.5 py-1 text-xs font-semibold">
-                    {t("timetable.quickOverview.online")}
-                  </span>
-                  <span className="text-sm app-text-soft">
-                    {t("timetable.labels.onlineDescription")}
-                  </span>
+              {todayItems.length === 0 ? (
+                <div className="mt-4 rounded-2xl border border-dashed px-4 py-4 text-sm app-text-muted">
+                  {t("timetable.labels.todayNoClass")}
                 </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {todayItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="app-card-strong rounded-2xl p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-semibold">
+                            {item.courseName || item.courseCode}
+                          </div>
+                          <div
+                            className="mt-1 text-sm"
+                            style={{ color: "var(--accent)" }}
+                          >
+                            {item.courseCode}
+                          </div>
+                        </div>
+                        <div className="app-pill rounded-xl px-2.5 py-1 text-xs font-semibold">
+                          {item.startTime} - {item.endTime}
+                        </div>
+                      </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="app-badge-onsite rounded-full px-2.5 py-1 text-xs font-semibold">
-                    {t("timetable.quickOverview.onsite")}
-                  </span>
-                  <span className="text-sm app-text-soft">
-                    {t("timetable.labels.onsiteDescription")}
-                  </span>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <DeliveryBadge item={item} t={t} />
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-sm app-text-soft">
+                        <div>
+                          {t("timetable.labels.roomLabel", {
+                            value: item.room || "--",
+                          })}
+                        </div>
+                        <div>
+                          {t("timetable.labels.campusLabel", {
+                            value: item.campus || "--",
+                          })}
+                        </div>
+                        <div>
+                          {t("timetable.labels.weekLabel", {
+                            value:
+                              item.weekLabel ||
+                              item.weeksIncluded ||
+                              item.semester ||
+                              "--",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              <QuickStatCard
-                label={t("timetable.quickOverview.currentViewMode")}
-                value={
-                  viewMode === "day"
-                    ? t("timetable.viewMode.day")
-                    : viewMode === "week"
-                    ? t("timetable.viewMode.week")
-                    : t("timetable.viewMode.month")
-                }
-              />
-              <QuickStatCard
-                label={t("timetable.quickOverview.visibleItems")}
-                value={String(filteredItems.length)}
-              />
-              <QuickStatCard
-                label={t("timetable.quickOverview.todayItems")}
-                value={String(todayItems.length)}
-              />
-              <QuickStatCard
-                label={t("timetable.quickOverview.selectedDate")}
-                value={formatShortDate(selectedDate, i18n.language)}
-              />
-              <QuickStatCard
-                label={t("timetable.quickOverview.lastSync")}
-                value={lastSyncedText}
-              />
+            <div className="app-card rounded-3xl p-4">
+              <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
+                {t("timetable.quickOverview.title")}
+              </div>
+
+              <div className="mt-4 rounded-3xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide app-text-muted">
+                      {i18n.language === "en"
+                        ? "Sync status"
+                        : "Trạng thái đồng bộ"}
+                    </div>
+                    <div className="mt-2 text-base font-semibold">
+                      {syncStatusLabel}
+                    </div>
+                    <div className="mt-1 text-sm app-text-muted">
+                      {i18n.language === "en"
+                        ? `Last sync: ${lastSyncedText}`
+                        : `Lần sync cuối: ${lastSyncedText}`}
+                    </div>
+                  </div>
+
+                  <span
+                    className={[
+                      "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                      syncStatusTone === "success"
+                        ? "app-badge-online"
+                        : syncStatusTone === "warning"
+                          ? "app-pill-warning"
+                          : syncStatusTone === "error"
+                            ? "app-pill-danger"
+                            : "app-pill",
+                    ].join(" ")}
+                  >
+                    {syncStatusLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="app-card mt-4 rounded-3xl p-4">
+                <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
+                  {t("timetable.quickOverview.colorLegend")}
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="app-badge-online rounded-full px-2.5 py-1 text-xs font-semibold">
+                      {t("timetable.quickOverview.online")}
+                    </span>
+                    <span className="text-sm app-text-soft">
+                      {t("timetable.labels.onlineDescription")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="app-badge-onsite rounded-full px-2.5 py-1 text-xs font-semibold">
+                      {t("timetable.quickOverview.onsite")}
+                    </span>
+                    <span className="text-sm app-text-soft">
+                      {t("timetable.labels.onsiteDescription")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                <QuickStatCard
+                  label={t("timetable.quickOverview.currentViewMode")}
+                  value={
+                    viewMode === "day"
+                      ? t("timetable.viewMode.day")
+                      : viewMode === "week"
+                        ? t("timetable.viewMode.week")
+                        : t("timetable.viewMode.month")
+                  }
+                />
+                <QuickStatCard
+                  label={t("timetable.quickOverview.visibleItems")}
+                  value={String(filteredItems.length)}
+                />
+                <QuickStatCard
+                  label={t("timetable.quickOverview.todayItems")}
+                  value={String(todayItems.length)}
+                />
+                <QuickStatCard
+                  label={t("timetable.quickOverview.selectedDate")}
+                  value={formatShortDate(selectedDate, i18n.language)}
+                />
+                <QuickStatCard
+                  label={t("timetable.quickOverview.lastSync")}
+                  value={lastSyncedText}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
+function ToastViewport({
+  toasts,
+  onClose,
+}: {
+  toasts: AppToast[];
+  onClose: (id: string) => void;
+}) {
+  if (!toasts.length) return null;
+
+  function getToastStyle(tone: ToastTone): React.CSSProperties {
+    if (tone === "success") {
+      return {
+        background: "linear-gradient(135deg, #059669, #047857)",
+        color: "#ffffff",
+        border: "1px solid rgba(255,255,255,0.18)",
+        boxShadow: "0 18px 40px rgba(16,185,129,0.25)",
+      };
+    }
+
+    if (tone === "warning") {
+      return {
+        background: "linear-gradient(135deg, #d97706, #b45309)",
+        color: "#ffffff",
+        border: "1px solid rgba(255,255,255,0.18)",
+        boxShadow: "0 18px 40px rgba(245,158,11,0.24)",
+      };
+    }
+
+    if (tone === "error") {
+      return {
+        background: "linear-gradient(135deg, #e11d48, #be123c)",
+        color: "#ffffff",
+        border: "1px solid rgba(255,255,255,0.18)",
+        boxShadow: "0 18px 40px rgba(244,63,94,0.24)",
+      };
+    }
+
+    return {
+      background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+      color: "#ffffff",
+      border: "1px solid rgba(255,255,255,0.18)",
+      boxShadow: "0 18px 40px rgba(59,130,246,0.24)",
+    };
+  }
+
+  return (
+    <div className="pointer-events-none fixed right-4 top-4 z-[90] flex w-[min(92vw,420px)] flex-col gap-3 md:right-6 md:top-6">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className="pointer-events-auto overflow-hidden rounded-[24px]"
+          style={getToastStyle(toast.tone)}
+        >
+          <div className="flex items-start gap-3 px-4 py-4">
+            <div
+              className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+              style={{
+                background: "rgba(255,255,255,0.14)",
+                color: "#ffffff",
+                border: "1px solid rgba(255,255,255,0.18)",
+              }}
+            >
+              {toast.tone === "success" ? (
+                <CheckCircleIcon />
+              ) : toast.tone === "warning" ? (
+                <WarningIcon />
+              ) : toast.tone === "error" ? (
+                <WarningIcon />
+              ) : (
+                <InfoIcon />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 800,
+                  color: "#ffffff",
+                }}
+              >
+                {toast.title}
+              </div>
+
+              {toast.message ? (
+                <div
+                  className="mt-1"
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: 1.65,
+                    fontWeight: 600,
+                    color: "#ffffff",
+                  }}
+                >
+                  {toast.message}
+                </div>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onClose(toast.id)}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              style={{
+                background: "rgba(255,255,255,0.14)",
+                color: "#ffffff",
+              }}
+              aria-label="Close toast"
+            >
+              <XSmallIcon />
+            </button>
+          </div>
+
+          <div className="h-1 w-full bg-white/10">
+            <div className="h-1 w-full animate-[toastShrink_3.6s_linear_forwards] bg-white/50" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 function ModeButton({
   active,
   onClick,
@@ -686,8 +1064,10 @@ function ModeButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl px-3 py-2 text-sm font-medium transition ${
-        active ? "text-white" : "app-text-soft"
+      className={`inline-flex h-10 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
+        active
+          ? "text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)]"
+          : "app-text-soft"
       }`}
       style={active ? { background: "var(--accent)" } : undefined}
     >
@@ -699,7 +1079,9 @@ function ModeButton({
 function QuickStatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="app-card-strong rounded-2xl p-3">
-      <div className="text-xs uppercase tracking-wide app-text-muted">{label}</div>
+      <div className="text-xs uppercase tracking-wide app-text-muted">
+        {label}
+      </div>
       <div className="mt-1 text-lg font-semibold">{value}</div>
     </div>
   );
@@ -811,7 +1193,10 @@ function MonthCalendar({
               ].join(" ")}
               style={
                 selected
-                  ? { boxShadow: "inset 0 0 0 1px var(--accent), var(--shadow-card)" }
+                  ? {
+                      boxShadow:
+                        "inset 0 0 0 1px var(--accent), var(--shadow-card)",
+                    }
                   : undefined
               }
               title={formatFullDate(cell.date, language)}
@@ -825,7 +1210,9 @@ function MonthCalendar({
                 </div>
                 <div className="text-xs app-text-muted">
                   {cell.items.length > 0
-                    ? t("timetable.content.classes", { count: cell.items.length })
+                    ? t("timetable.content.classes", {
+                        count: cell.items.length,
+                      })
                     : ""}
                 </div>
               </div>
@@ -844,7 +1231,10 @@ function MonthCalendar({
                       >
                         {item.courseCode}
                       </div>
-                      <DeliveryBadge item={item} t={t as (key: string) => string} />
+                      <DeliveryBadge
+                        item={item}
+                        t={t as (key: string) => string}
+                      />
                     </div>
 
                     <div className="mt-1 text-xs">
@@ -875,7 +1265,7 @@ function MonthCalendar({
 function buildMonthCells(
   items: TimetableItem[],
   selectedDate: Date,
-  today: Date
+  today: Date,
 ): MonthCell[] {
   const monthStart = startOfMonth(selectedDate);
   const gridStart = startOfWeek(monthStart);
@@ -910,7 +1300,7 @@ function buildMonthCells(
 function groupWeekItems(
   items: TimetableItem[],
   selectedDate: Date,
-  language: string
+  language: string,
 ): DisplayGroup[] {
   const weekStart = startOfWeek(selectedDate);
 
@@ -1017,7 +1407,9 @@ function parseDateInputValue(value: string) {
 }
 
 function formatShortDate(date: Date, language = "vi") {
-  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "vi-VN").format(date);
+  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "vi-VN").format(
+    date,
+  );
 }
 
 function formatFullDate(date: Date, language = "vi") {
@@ -1073,4 +1465,90 @@ function toWeekdayLabel(dayOfWeek: number, language = "vi") {
 
 function getWeekdayShort(dayOfWeek: number, language = "vi") {
   return toWeekdayLabel(dayOfWeek, language);
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="h-5 w-5">
+      <path
+        d="M10 17A7 7 0 1 0 10 3A7 7 0 1 0 10 17Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M7 10.2L8.9 12.1L13.1 7.9"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="h-5 w-5">
+      <path
+        d="M10 17A7 7 0 1 0 10 3A7 7 0 1 0 10 17Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M10 8.5V12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 6.5H10.01"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function WarningIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" className="h-5 w-5">
+      <path
+        d="M9.13 4.32C9.5 3.67 10.5 3.67 10.87 4.32L15.97 13.24C16.33 13.88 15.87 14.67 15.11 14.67H4.89C4.13 14.67 3.67 13.88 4.03 13.24L9.13 4.32Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 7.5V10.6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 12.45H10.01"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function XSmallIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className="h-3.5 w-3.5"
+    >
+      <path
+        d="M6 6L14 14M14 6L6 14"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }

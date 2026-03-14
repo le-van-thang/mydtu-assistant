@@ -57,7 +57,10 @@
     "transcript": "Transcript",
     "warnings": "Warnings",
     "settings": "Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "exams": "Exam schedule",
+    "examTentative": "Tentative exams",
+    "examOfficial": "Official exams"
   },
   "status": {
     "title": "Data status",
@@ -121,7 +124,7 @@
       "importFailedWithReason": "Import failed: {{reason}}",
       "importFailedWithStatus": "Import failed ({{status}}).",
       "unsupportedScope": "Unsupported scope: {{scope}}",
-      "success": "Synced successfully {{totalItems}} classes{{totalWeeks, plural, =0 {} other { from {{totalWeeks}} weeks}}}.",
+      "success": "Synced successfully {{totalItems}} classes across {{totalWeeks}} weeks.",
       "successSimple": "Sync completed."
     },
     "summary": {
@@ -224,6 +227,140 @@
     "subtitle": "Academic alerts: overdue, low GPA, missing credits.",
     "section": "System alerts",
     "placeholder": "No alerts (demo)."
+  },
+  "exams": {
+    "page": {
+      "title": "Exam schedule",
+      "subtitle": "Manage official and tentative exam records, and search quickly by student, course, room, or date."
+    },
+    "actions": {
+      "openPortal": "Open portal",
+      "enableNotify": "Enable notifications",
+      "notifyEnabled": "Notifications enabled",
+      "notifyBlocked": "Notifications blocked",
+      "sync": "Synchronize exam schedule",
+      "syncing": "Syncing...",
+      "openDetail": "Open detail",
+      "downloadOriginal": "Download original",
+      "exportCsv": "Export CSV",
+      "loadMore": "Load more exam days",
+      "resetFilters": "Reset filters"
+    },
+    "stats": {
+      "totalRecords": "Total records",
+      "visible": "Visible",
+      "uniqueDays": "Exam days",
+      "courses": "Courses",
+      "students": "Students",
+      "upcoming": "Upcoming",
+      "official": "Official",
+      "tentative": "Tentative"
+    },
+    "filters": {
+      "searchLabel": "Search exam schedule",
+      "searchPlaceholder": "Search by course code, course name, student ID, student name, class, room, campus...",
+      "planLabel": "Exam plan type",
+      "allTypes": "All plan types",
+      "official": "Official",
+      "tentative": "Tentative",
+      "sortLabel": "Sort by",
+      "tip": "You can enter multiple keywords separated by commas or new lines.",
+      "onlyUpcoming": "Upcoming only"
+    },
+    "sort": {
+      "dateAsc": "Exam date ascending",
+      "dateDesc": "Exam date descending",
+      "courseAsc": "Course A-Z",
+      "studentAsc": "Student A-Z"
+    },
+    "meta": {
+      "lastSyncAt": "Last sync: {{time}}",
+      "noSyncYet": "No sync yet",
+      "noticeCount": "Notices: {{count}}",
+      "visibleCount": "Matching records: {{count}}",
+      "groupCount": "Exam day groups: {{count}}",
+      "notifyStatus": "Notifications: {{status}}"
+    },
+    "notify": {
+      "enabled": "Browser notifications for new exam records are enabled.",
+      "denied": "Browser notifications are blocked. Please allow them in site settings.",
+      "pending": "Notification permission request has been sent.",
+      "statusGranted": "granted",
+      "statusDenied": "blocked",
+      "statusDefault": "not decided",
+      "statusUnsupported": "unsupported"
+    },
+    "sync": {
+      "idleHelp": "You can sync exam data from the portal or continue using your cached records.",
+      "cacheFallback": "Could not read exam cache. You can still sync again.",
+      "cachedReady": "Loaded {{count}} exam records from cache/DB. Last sync: {{time}}.",
+      "noSyncYet": "Not synced yet",
+      "preparing": "Preparing to sync exam data...",
+      "portalPreparing": "Opening exam page in the training portal...",
+      "fetchingPortal": "Fetching exam notices from the extension...",
+      "parsingWorkbook": "Parsing attached exam files...",
+      "savingDb": "Saving exam data to the database...",
+      "refreshingDb": "Refreshing the latest records from the database...",
+      "successDetailed": "Synced {{totalRecords}} records from {{totalNotices}} notices successfully.",
+      "hint": "Tip: with large datasets, filter by course or student ID for faster browsing.",
+      "portalOpened": "Exam portal opened through the extension.",
+      "portalOpenedFallback": "Could not open through the extension, opened the portal in a new tab instead.",
+      "errors": {
+        "extensionReload": "The extension is not ready. Please reload the extension or reopen the page.",
+        "timeout": "The extension took too long to respond. Please try again.",
+        "extensionUnavailable": "Extension bridge is unavailable.",
+        "emptyResponse": "The extension returned an empty response.",
+        "scrapeFailed": "Could not scrape exam notices from the training portal.",
+        "attachmentFailed": "Could not download the exam attachment.",
+        "portalFetchFailed": "Could not fetch data from the training portal.",
+        "unknown": "Sync failed due to an unknown error."
+      }
+    },
+    "table": {
+      "recordCount": "{{count}} records",
+      "type": "Type",
+      "course": "Course",
+      "time": "Time",
+      "room": "Room",
+      "student": "Student",
+      "class": "Class",
+      "source": "Source"
+    },
+    "labels": {
+      "unknownDate": "Unknown date",
+      "passedDays": "{{count}} days ago",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "remainingDays": "{{count}} days left",
+      "unknownCourseCode": "Unknown course code",
+      "unknownTime": "Unknown time",
+      "unknownRoom": "Unknown room",
+      "unknownStudent": "Unknown student",
+      "unknownStudentId": "Unknown student ID",
+      "unknownPublishTime": "Unknown published time"
+    },
+    "empty": {
+      "title": "No matching exam records",
+      "subtitle": "Try changing the filters, disable upcoming-only mode, or sync the data again."
+    },
+    "insights": {
+      "title": "Quick insights",
+      "subtitle": "A practical summary of peak exam days, heavy-load courses, and the nearest upcoming exams.",
+      "peakDays": "Peak exam days",
+      "peakDaysHint": "Helps you spot high-density exam days and plan ahead better.",
+      "recordCount": "{{count}} records",
+      "noHeatmap": "Not enough data to analyze exam days yet.",
+      "timelineTitle": "Upcoming timeline",
+      "timelineHint": "Prioritized list of the nearest upcoming exam records.",
+      "noTimeline": "No upcoming exam records.",
+      "courseLoad": "Courses with highest load",
+      "courseLoadHint": "Quick overview of the most frequent courses in the current filtered dataset.",
+      "noCourseLoad": "No course data available to summarize."
+    },
+    "export": {
+      "fileName": "mydtu-exam-schedule",
+      "done": "Exported {{count}} records to CSV."
+    }
   },
   "settings": {
     "title": "Settings",

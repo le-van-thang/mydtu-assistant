@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MYDTU Sync",
   "version": "0.2.0",
-  "description": "Bridge MYDTU and exam session to MYDTU Assistant web app",
+  "description": "Bridge MYDTU timetable and exam session to MYDTU Assistant web app",
   "permissions": ["tabs", "storage", "scripting"],
   "host_permissions": [
     "https://mydtu.duytan.edu.vn/*",
@@ -29,4 +29,4 @@
   "action": {
     "default_title": "MYDTU Sync"
   }
-}
+} 

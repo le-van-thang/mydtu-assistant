@@ -57,7 +57,10 @@
     "transcript": "Bảng điểm",
     "warnings": "Cảnh báo",
     "settings": "Cài đặt",
-    "profile": "Hồ sơ"
+    "profile": "Hồ sơ",
+    "exams": "Danh sách thi",
+    "examTentative": "Lịch thi dự kiến",
+    "examOfficial": "Lịch thi chính thức"
   },
   "status": {
     "title": "Trạng thái dữ liệu",
@@ -121,7 +124,7 @@
       "importFailedWithReason": "Import thất bại: {{reason}}",
       "importFailedWithStatus": "Import thất bại ({{status}}).",
       "unsupportedScope": "Scope không hỗ trợ: {{scope}}",
-      "success": "Đã đồng bộ thành công {{totalItems}} buổi học{{totalWeeks, plural, =0 {} other { từ {{totalWeeks}} tuần}}}.",
+      "success": "Đã đồng bộ thành công {{totalItems}} buổi học trong {{totalWeeks}} tuần.",
       "successSimple": "Đã đồng bộ xong."
     },
     "summary": {
@@ -157,7 +160,7 @@
       "lastSync": "Lần sync cuối"
     },
     "legend": {
-      "online": "Lớp học trực tuyến hoặc phòng/cơ sở có chỉ Online",
+      "online": "Lớp học trực tuyến hoặc phòng/cơ sở có chữ Online",
       "onsite": "Lớp học diễn ra trực tiếp tại phòng/cơ sở"
     },
     "empty": {
@@ -224,6 +227,140 @@
     "subtitle": "Cảnh báo học vụ: nợ môn, GPA thấp, trễ hạn.",
     "section": "Cảnh báo hệ thống",
     "placeholder": "Chưa có cảnh báo (demo)."
+  },
+  "exams": {
+    "page": {
+      "title": "Lịch thi",
+      "subtitle": "Quản lý lịch thi chính thức và dự kiến, tìm nhanh theo sinh viên, môn học, phòng thi và thời gian."
+    },
+    "actions": {
+      "openPortal": "Mở cổng đào tạo",
+      "enableNotify": "Bật thông báo",
+      "notifyEnabled": "Thông báo đã bật",
+      "notifyBlocked": "Thông báo bị chặn",
+      "sync": "Đồng bộ lịch thi",
+      "syncing": "Đang đồng bộ...",
+      "openDetail": "Mở chi tiết",
+      "downloadOriginal": "Tải file gốc",
+      "exportCsv": "Xuất CSV",
+      "loadMore": "Xem thêm ngày thi",
+      "resetFilters": "Đặt lại bộ lọc"
+    },
+    "stats": {
+      "totalRecords": "Tổng bản ghi",
+      "visible": "Đang hiển thị",
+      "uniqueDays": "Số ngày thi",
+      "courses": "Môn học",
+      "students": "Sinh viên",
+      "upcoming": "Sắp diễn ra",
+      "official": "Chính thức",
+      "tentative": "Dự kiến"
+    },
+    "filters": {
+      "searchLabel": "Tìm kiếm lịch thi",
+      "searchPlaceholder": "Tìm theo mã môn, tên môn, MSSV, họ tên, lớp, phòng, cơ sở...",
+      "planLabel": "Loại lịch thi",
+      "allTypes": "Tất cả loại lịch",
+      "official": "Chính thức",
+      "tentative": "Dự kiến",
+      "sortLabel": "Sắp xếp",
+      "tip": "Bạn có thể nhập nhiều từ khóa, ngăn cách bằng dấu phẩy hoặc xuống dòng.",
+      "onlyUpcoming": "Chỉ xem lịch sắp thi"
+    },
+    "sort": {
+      "dateAsc": "Ngày thi tăng dần",
+      "dateDesc": "Ngày thi giảm dần",
+      "courseAsc": "Theo môn học A-Z",
+      "studentAsc": "Theo sinh viên A-Z"
+    },
+    "meta": {
+      "lastSyncAt": "Đồng bộ lần cuối: {{time}}",
+      "noSyncYet": "Chưa đồng bộ lần nào",
+      "noticeCount": "Số thông báo: {{count}}",
+      "visibleCount": "Bản ghi phù hợp: {{count}}",
+      "groupCount": "Cụm ngày thi: {{count}}",
+      "notifyStatus": "Thông báo: {{status}}"
+    },
+    "notify": {
+      "enabled": "Đã bật thông báo trình duyệt cho lịch thi mới.",
+      "denied": "Trình duyệt đang chặn thông báo. Hãy cho phép trong cài đặt site.",
+      "pending": "Yêu cầu cấp quyền thông báo đã được gửi.",
+      "statusGranted": "đã cho phép",
+      "statusDenied": "bị chặn",
+      "statusDefault": "chưa quyết định",
+      "statusUnsupported": "không hỗ trợ"
+    },
+    "sync": {
+      "idleHelp": "Bạn có thể đồng bộ dữ liệu thi từ cổng đào tạo hoặc dùng dữ liệu cache đang có.",
+      "cacheFallback": "Không đọc được cache lịch thi. Bạn vẫn có thể đồng bộ lại.",
+      "cachedReady": "Đã nạp {{count}} lịch thi từ cache/DB. Lần đồng bộ gần nhất: {{time}}.",
+      "noSyncYet": "Chưa đồng bộ",
+      "preparing": "Đang chuẩn bị đồng bộ dữ liệu lịch thi...",
+      "portalPreparing": "Đang mở trang lịch thi trên cổng đào tạo...",
+      "fetchingPortal": "Đang lấy danh sách thông báo thi từ extension...",
+      "parsingWorkbook": "Đang phân tích file đính kèm lịch thi...",
+      "savingDb": "Đang lưu dữ liệu lịch thi vào cơ sở dữ liệu...",
+      "refreshingDb": "Đang tải lại dữ liệu mới nhất từ cơ sở dữ liệu...",
+      "successDetailed": "Đồng bộ thành công {{totalRecords}} bản ghi từ {{totalNotices}} thông báo.",
+      "hint": "Mẹo: với dữ liệu lớn, nên lọc theo môn hoặc MSSV để xem nhanh hơn.",
+      "portalOpened": "Đã mở trang lịch thi trên extension.",
+      "portalOpenedFallback": "Không mở được qua extension, đã mở cổng đào tạo bằng tab mới.",
+      "errors": {
+        "extensionReload": "Extension chưa sẵn sàng. Hãy reload extension hoặc mở lại trang.",
+        "timeout": "Extension phản hồi quá chậm. Hãy thử lại.",
+        "extensionUnavailable": "Không tìm thấy extension bridge.",
+        "emptyResponse": "Extension trả về dữ liệu rỗng.",
+        "scrapeFailed": "Không lấy được danh sách thi từ cổng đào tạo.",
+        "attachmentFailed": "Không tải được file đính kèm lịch thi.",
+        "portalFetchFailed": "Không lấy được dữ liệu từ cổng đào tạo.",
+        "unknown": "Đồng bộ thất bại do lỗi chưa xác định."
+      }
+    },
+    "table": {
+      "recordCount": "{{count}} bản ghi",
+      "type": "Loại",
+      "course": "Môn học",
+      "time": "Thời gian",
+      "room": "Phòng",
+      "student": "Sinh viên",
+      "class": "Lớp",
+      "source": "Nguồn"
+    },
+    "labels": {
+      "unknownDate": "Chưa rõ ngày",
+      "passedDays": "Đã qua {{count}} ngày",
+      "today": "Hôm nay",
+      "tomorrow": "Ngày mai",
+      "remainingDays": "Còn {{count}} ngày",
+      "unknownCourseCode": "Chưa rõ mã môn",
+      "unknownTime": "Chưa rõ giờ",
+      "unknownRoom": "Chưa rõ phòng",
+      "unknownStudent": "Chưa rõ sinh viên",
+      "unknownStudentId": "Chưa rõ MSSV",
+      "unknownPublishTime": "Chưa rõ thời gian đăng"
+    },
+    "empty": {
+      "title": "Không có lịch thi phù hợp",
+      "subtitle": "Hãy thử đổi bộ lọc, bỏ trạng thái chỉ xem sắp thi, hoặc đồng bộ lại dữ liệu."
+    },
+    "insights": {
+      "title": "Phân tích nhanh",
+      "subtitle": "Tóm tắt các ngày thi cao điểm, môn có nhiều bản ghi và các lịch thi sắp đến gần nhất.",
+      "peakDays": "Ngày thi cao điểm",
+      "peakDaysHint": "Giúp bạn nhận biết những ngày có mật độ thi cao để chuẩn bị tốt hơn.",
+      "recordCount": "{{count}} bản ghi",
+      "noHeatmap": "Chưa có đủ dữ liệu để phân tích ngày thi.",
+      "timelineTitle": "Lịch sắp diễn ra",
+      "timelineHint": "Danh sách ưu tiên các lịch thi sắp tới gần nhất.",
+      "noTimeline": "Không có lịch thi sắp tới.",
+      "courseLoad": "Môn có nhiều lịch thi",
+      "courseLoadHint": "Tổng hợp nhanh những môn xuất hiện nhiều nhất trong dữ liệu đang lọc.",
+      "noCourseLoad": "Chưa có dữ liệu môn học để tổng hợp."
+    },
+    "export": {
+      "fileName": "lich-thi-mydtu",
+      "done": "Đã xuất {{count}} bản ghi ra file CSV."
+    }
   },
   "settings": {
     "title": "Cài đặt",

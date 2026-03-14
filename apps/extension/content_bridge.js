@@ -1,7 +1,7 @@
 (() => {
   const SOURCE = "mydtu-assistant-web";
   const TARGET = "mydtu-assistant-extension";
-    const SEND_TIMEOUT_MS = 180000;
+  const SEND_TIMEOUT_MS = 180000;
 
   function isObject(value) {
     return typeof value === "object" && value !== null;
@@ -16,7 +16,7 @@
         payload: payload ?? null,
         error: error ?? null,
       },
-      "*"
+      "*",
     );
   }
 
@@ -29,15 +29,20 @@
         data: data ?? null,
         error: error ?? null,
       },
-      "*"
+      "*",
     );
   }
 
   function safeSend(message, onDone) {
-    if (!globalThis.chrome || !chrome.runtime || typeof chrome.runtime.sendMessage !== "function") {
+    if (
+      !globalThis.chrome ||
+      !chrome.runtime ||
+      typeof chrome.runtime.sendMessage !== "function"
+    ) {
       onDone({
         ok: false,
-        error: "chrome.runtime.sendMessage unavailable. Hãy reload extension và hard refresh trang web.",
+        error:
+          "chrome.runtime.sendMessage unavailable. Hãy reload extension và hard refresh trang web.",
       });
       return;
     }
@@ -62,9 +67,14 @@
       chrome.runtime.sendMessage(message, (response) => {
         const err = chrome.runtime?.lastError;
         if (err) {
+          const rawMessage = String(err.message || "Runtime sendMessage failed");
+          const normalized = rawMessage.toLowerCase().includes("context invalidated")
+            ? "Extension context invalidated. Hãy reload extension và hard refresh trang web."
+            : rawMessage;
+
           done({
             ok: false,
-            error: err.message || "Runtime sendMessage failed",
+            error: normalized,
           });
           return;
         }
@@ -72,9 +82,14 @@
         done(response || { ok: false, error: "Empty response from extension" });
       });
     } catch (e) {
+      const rawMessage = String(e?.message || e);
+      const normalized = rawMessage.toLowerCase().includes("context invalidated")
+        ? "Extension context invalidated. Hãy reload extension và hard refresh trang web."
+        : rawMessage;
+
       done({
         ok: false,
-        error: String(e?.message || e),
+        error: normalized,
       });
     }
   }
@@ -87,13 +102,17 @@
     const msg = event.data;
     if (!isObject(msg)) return;
 
-    // Legacy protocol
     if (msg.type === "MYDTU_SYNC_REQUEST") {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
       const scope = msg.scope;
 
       if (scope !== "timetable") {
-        postLegacyResponse(requestId, false, null, `Unsupported scope: ${String(scope)}`);
+        postLegacyResponse(
+          requestId,
+          false,
+          null,
+          `Unsupported scope: ${String(scope)}`,
+        );
         return;
       }
 
@@ -106,24 +125,33 @@
         },
         (response) => {
           if (!response?.ok) {
-            postLegacyResponse(requestId, false, null, response?.error || "Sync failed");
+            postLegacyResponse(
+              requestId,
+              false,
+              null,
+              response?.error || "Sync failed",
+            );
             return;
           }
 
           postLegacyResponse(requestId, true, response.data ?? null, null);
-        }
+        },
       );
 
       return;
     }
 
-    // New bridge protocol
     if (msg.source === SOURCE) {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
       const action = typeof msg.action === "string" ? msg.action : "";
 
       if (!requestId || !action) {
-        postBridgeResponse(requestId || "unknown", false, null, "Invalid bridge message");
+        postBridgeResponse(
+          requestId || "unknown",
+          false,
+          null,
+          "Invalid bridge message",
+        );
         return;
       }
 
@@ -139,9 +167,9 @@
             requestId,
             !!response?.ok,
             response?.data ?? null,
-            response?.error ?? null
+            response?.error ?? null,
           );
-        }
+        },
       );
     }
   });
