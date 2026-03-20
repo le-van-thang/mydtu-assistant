@@ -1,5 +1,4 @@
 // path: apps/api/src/routes/index.ts
-
 import { Router } from "express";
 import { analyticsRouter } from "./analytics";
 import { dataRouter } from "./data";
@@ -8,6 +7,9 @@ import { healthRouter } from "./health";
 import { importRouter } from "./import";
 import { importExamsRouter } from "./importExams";
 import syncRouter from "./sync";
+import { transcriptRouter } from "./transcript";
+import { transcriptDetailRouter } from "./transcriptDetail";
+import { syncTranscriptDetailRouter } from "./syncTranscriptDetail";
 import { usersRouter } from "./users";
 
 export const apiRouter = Router();
@@ -19,4 +21,9 @@ apiRouter.use("/import/exams", importExamsRouter);
 apiRouter.use("/exams", examsRouter);
 apiRouter.use("/data", dataRouter);
 apiRouter.use("/analytics", analyticsRouter);
+
 apiRouter.use("/sync", syncRouter);
+apiRouter.use("/sync/transcript-detail", syncTranscriptDetailRouter);
+
+apiRouter.use("/transcript", transcriptRouter);
+apiRouter.use("/transcript/detail", transcriptDetailRouter);

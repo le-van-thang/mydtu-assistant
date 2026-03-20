@@ -287,7 +287,7 @@ img {
   width: 100%;
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-main);
- border: 1.5px solid var(--border-strong);
+  border: 1px solid var(--border-main);
   border-radius: 16px;
   padding: 0.72rem 0.9rem;
   outline: none;

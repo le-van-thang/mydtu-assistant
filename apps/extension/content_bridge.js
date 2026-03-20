@@ -1,7 +1,9 @@
+// path: apps/extension/content_bridge.js
+
 (() => {
   const SOURCE = "mydtu-assistant-web";
   const TARGET = "mydtu-assistant-extension";
-  const SEND_TIMEOUT_MS = 180000;
+  const SEND_TIMEOUT_MS = 600000;
 
   function isObject(value) {
     return typeof value === "object" && value !== null;

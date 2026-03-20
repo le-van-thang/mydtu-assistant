@@ -35,6 +35,13 @@ export type ParsedExamRecord = {
 
   birthDate: string | null;
   note: string | null;
+
+  // giữ đúng thứ tự gốc trong Excel
+  sheetName?: string | null;
+  sheetIndex?: number | null;
+  rowIndex?: number | null;
+  sessionOrder?: number | null;
+  recordOrder?: number | null;
 };
 
 type HeaderIndexes = {
@@ -96,8 +103,8 @@ function cleanAttemptText(value: unknown) {
     .trim();
 }
 
-function makeId(parts: Array<string | null | undefined>) {
-  return parts.map((p) => normalizeSpace(p || "")).join("||");
+function makeId(parts: Array<string | number | null | undefined>) {
+  return parts.map((p) => normalizeSpace(p ?? "")).join("||");
 }
 
 function parseDdMmYyyy(value: string | null) {
@@ -298,8 +305,9 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
 
   const workbook = XLSX.read(notice.attachmentBase64, { type: "base64" });
   const records: ParsedExamRecord[] = [];
+  let globalRecordOrder = 0;
 
-  for (const sheetName of workbook.SheetNames) {
+  workbook.SheetNames.forEach((sheetName, sheetIndex) => {
     const sheet = workbook.Sheets[sheetName];
 
     const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
@@ -319,31 +327,33 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
       raw: null,
     };
     let headerIndexes: HeaderIndexes = emptyHeaderIndexes();
+    let sessionOrder = -1;
 
-    for (const row of rows) {
+    rows.forEach((row, rowIndex) => {
       const joined = cleanVisualSeparators(row.join(" | "));
       const joinedSearch = normalizeSearch(joined);
 
-      if (!joined) continue;
+      if (!joined) return;
 
       if (joinedSearch.includes("ma mon") && joinedSearch.includes("mon")) {
         const meta = extractCourseMeta(joined);
         currentCourseName = meta.courseName;
         if (meta.courseCode) currentCourseCode = meta.courseCode;
-        continue;
+        return;
       }
 
       if (joinedSearch.includes("thoi gian") && joinedSearch.includes("ngay")) {
         currentExamMeta = extractExamSessionMeta(joined);
-        continue;
+        sessionOrder += 1;
+        return;
       }
 
       if (isHeaderRow(row)) {
         headerIndexes = getHeaderIndexes(row);
-        continue;
+        return;
       }
 
-      if (!isLikelyDataRow(row, headerIndexes)) continue;
+      if (!isLikelyDataRow(row, headerIndexes)) return;
 
       const studentId =
         headerIndexes.studentId >= 0
@@ -378,6 +388,8 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
           currentExamMeta.startTime,
           currentExamMeta.room,
           studentId,
+          sheetIndex,
+          rowIndex,
         ]),
         noticeTitle: notice.title,
         planType: notice.planType || detectPlanType(notice.title),
@@ -402,9 +414,30 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
         classStudent,
         birthDate,
         note,
+        sheetName,
+        sheetIndex,
+        rowIndex,
+        sessionOrder,
+        recordOrder: globalRecordOrder++,
       });
-    }
-  }
+    });
+  });
 
-  return Array.from(new Map(records.map((r) => [r.id, r])).values());
+  return Array.from(new Map(records.map((r) => [r.id, r])).values()).sort((a, b) => {
+    const sa = a.sheetIndex ?? 999999;
+    const sb = b.sheetIndex ?? 999999;
+    if (sa !== sb) return sa - sb;
+
+    const xa = a.sessionOrder ?? 999999;
+    const xb = b.sessionOrder ?? 999999;
+    if (xa !== xb) return xa - xb;
+
+    const ra = a.rowIndex ?? 999999;
+    const rb = b.rowIndex ?? 999999;
+    if (ra !== rb) return ra - rb;
+
+    const oa = a.recordOrder ?? 999999;
+    const ob = b.recordOrder ?? 999999;
+    return oa - ob;
+  });
 }

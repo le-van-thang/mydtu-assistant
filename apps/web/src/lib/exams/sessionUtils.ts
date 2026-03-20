@@ -20,6 +20,10 @@ export type ExamSessionSummary = {
   classCourseCount: number;
   classStudentCount: number;
   records: ParsedExamRecord[];
+  sheetIndex?: number | null;
+  sessionOrder?: number | null;
+  firstRowIndex?: number | null;
+  firstRecordOrder?: number | null;
 };
 
 export function sanitizeVisualText(value: string | null | undefined) {
@@ -102,6 +106,8 @@ export function buildSessionSummaries(records: ParsedExamRecord[]): ExamSessionS
 
   for (const record of records) {
     const key = [
+      record.sheetIndex ?? "",
+      record.sessionOrder ?? "",
       record.planType,
       record.courseCode || "",
       record.courseName || "",
@@ -118,7 +124,25 @@ export function buildSessionSummaries(records: ParsedExamRecord[]): ExamSessionS
 
   return Array.from(map.values())
     .map((items) => {
-      const first = items[0];
+      const sortedItems = items.slice().sort((a, b) => {
+        const sa = a.sheetIndex ?? 999999;
+        const sb = b.sheetIndex ?? 999999;
+        if (sa !== sb) return sa - sb;
+
+        const xa = a.sessionOrder ?? 999999;
+        const xb = b.sessionOrder ?? 999999;
+        if (xa !== xb) return xa - xb;
+
+        const ra = a.rowIndex ?? 999999;
+        const rb = b.rowIndex ?? 999999;
+        if (ra !== rb) return ra - rb;
+
+        const oa = a.recordOrder ?? 999999;
+        const ob = b.recordOrder ?? 999999;
+        return oa - ob;
+      });
+
+      const first = sortedItems[0];
 
       return {
         id: [
@@ -128,6 +152,8 @@ export function buildSessionSummaries(records: ParsedExamRecord[]): ExamSessionS
           first.startTime,
           first.room,
           first.campus,
+          first.sheetIndex ?? "",
+          first.sessionOrder ?? "",
         ]
           .map((x) => x || "")
           .join("::"),
@@ -145,15 +171,31 @@ export function buildSessionSummaries(records: ParsedExamRecord[]): ExamSessionS
         attachmentName: first.attachmentName,
         publishedAtRaw: first.publishedAtRaw,
         noticeTitle: first.noticeTitle,
-        studentCount: new Set(items.map((x) => x.studentId).filter(Boolean)).size || items.length,
-        classCourseCount: new Set(items.map((x) => x.classCourse).filter(Boolean)).size,
-        classStudentCount: new Set(items.map((x) => x.classStudent).filter(Boolean)).size,
-        records: items.slice(),
+        studentCount: new Set(sortedItems.map((x) => x.studentId).filter(Boolean)).size || sortedItems.length,
+        classCourseCount: new Set(sortedItems.map((x) => x.classCourse).filter(Boolean)).size,
+        classStudentCount: new Set(sortedItems.map((x) => x.classStudent).filter(Boolean)).size,
+        records: sortedItems,
+        sheetIndex: first.sheetIndex,
+        sessionOrder: first.sessionOrder,
+        firstRowIndex: first.rowIndex,
+        firstRecordOrder: first.recordOrder,
       };
     })
     .sort((a, b) => {
-      const av = `${a.examDate || "9999-12-31"} ${a.startTime || "23:59"} ${a.courseCode || ""}`;
-      const bv = `${b.examDate || "9999-12-31"} ${b.startTime || "23:59"} ${b.courseCode || ""}`;
-      return av.localeCompare(bv);
+      const sa = a.sheetIndex ?? 999999;
+      const sb = b.sheetIndex ?? 999999;
+      if (sa !== sb) return sa - sb;
+
+      const xa = a.sessionOrder ?? 999999;
+      const xb = b.sessionOrder ?? 999999;
+      if (xa !== xb) return xa - xb;
+
+      const ra = a.firstRowIndex ?? 999999;
+      const rb = b.firstRowIndex ?? 999999;
+      if (ra !== rb) return ra - rb;
+
+      const oa = a.firstRecordOrder ?? 999999;
+      const ob = b.firstRecordOrder ?? 999999;
+      return oa - ob;
     });
 }

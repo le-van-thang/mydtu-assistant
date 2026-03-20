@@ -3,14 +3,14 @@
 import { fetchExamsFromDb } from "@/lib/exams/api";
 import type { ParsedExamRecord } from "@/lib/exams/parseWorkbook";
 import {
-    buildSessionSummaries,
-    formatDate,
-    formatDateTime,
-    getCountdownLabel,
-    getStatusTone,
-    sanitizeExamMeta,
-    sanitizeVisualText,
-    type ExamSessionSummary,
+  buildSessionSummaries,
+  formatDate,
+  formatDateTime,
+  getCountdownLabel,
+  getStatusTone,
+  sanitizeExamMeta,
+  sanitizeVisualText,
+  type ExamSessionSummary,
 } from "@/lib/exams/sessionUtils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -56,7 +56,7 @@ function buildSearchText(record: ParsedExamRecord) {
         record.room,
         record.campus,
         record.birthDate,
-      ].join(" | ")
+      ].join(" | "),
     ),
     compact: normalizeCompact(
       [
@@ -66,9 +66,29 @@ function buildSearchText(record: ParsedExamRecord) {
         record.courseCode,
         record.room,
         record.campus,
-      ].join(" ")
+      ].join(" "),
     ),
   };
+}
+
+function sortRecordsByExcelOrder(items: ParsedExamRecord[]) {
+  return items.slice().sort((a, b) => {
+    const sa = a.sheetIndex ?? 999999;
+    const sb = b.sheetIndex ?? 999999;
+    if (sa !== sb) return sa - sb;
+
+    const xa = a.sessionOrder ?? 999999;
+    const xb = b.sessionOrder ?? 999999;
+    if (xa !== xb) return xa - xb;
+
+    const ra = a.rowIndex ?? 999999;
+    const rb = b.rowIndex ?? 999999;
+    if (ra !== rb) return ra - rb;
+
+    const oa = a.recordOrder ?? 999999;
+    const ob = b.recordOrder ?? 999999;
+    return oa - ob;
+  });
 }
 
 function getDensityBadgeClass(studentCount: number) {
@@ -91,7 +111,7 @@ function getDensityLabel(studentCount: number, isVi: boolean) {
   return isVi ? "Ít" : "Light";
 }
 
-function groupRecordsByRoom(records: ParsedExamRecord[]) {
+function groupSessionsByRoom(sessions: ExamSessionSummary[]) {
   const map = new Map<
     string,
     {
@@ -99,36 +119,70 @@ function groupRecordsByRoom(records: ParsedExamRecord[]) {
       campus: string | null;
       totalStudents: number;
       sessions: ExamSessionSummary[];
-      records: ParsedExamRecord[];
+      firstSheetIndex: number;
+      firstSessionOrder: number;
+      firstRowIndex: number;
     }
   >();
 
-  const sessions = buildSessionSummaries(records);
-
   for (const session of sessions) {
-    const roomKey = sanitizeVisualText(session.room) || "unknown-room";
-    const existing = map.get(roomKey);
+    const key = `${sanitizeVisualText(session.room) || "—"}|||${sanitizeVisualText(session.campus) || ""}`;
+    const room = sanitizeVisualText(session.room) || "—";
+    const campus = session.campus || null;
 
-    if (existing) {
-      existing.totalStudents += session.studentCount;
-      existing.sessions.push(session);
-      existing.records.push(...session.records);
-    } else {
-      map.set(roomKey, {
-        room: sanitizeVisualText(session.room) || "—",
-        campus: session.campus || null,
-        totalStudents: session.studentCount,
-        sessions: [session],
-        records: [...session.records],
+    if (!map.has(key)) {
+      map.set(key, {
+        room,
+        campus,
+        totalStudents: 0,
+        sessions: [],
+        firstSheetIndex: session.sheetIndex ?? 999999,
+        firstSessionOrder: session.sessionOrder ?? 999999,
+        firstRowIndex: session.firstRowIndex ?? 999999,
       });
     }
+
+    const item = map.get(key)!;
+    item.totalStudents += session.studentCount;
+    item.sessions.push(session);
+    item.firstSheetIndex = Math.min(
+      item.firstSheetIndex,
+      session.sheetIndex ?? 999999,
+    );
+    item.firstSessionOrder = Math.min(
+      item.firstSessionOrder,
+      session.sessionOrder ?? 999999,
+    );
+    item.firstRowIndex = Math.min(
+      item.firstRowIndex,
+      session.firstRowIndex ?? 999999,
+    );
   }
 
-  return Array.from(map.values()).sort((a, b) => {
-    if (a.room === "—") return 1;
-    if (b.room === "—") return -1;
-    return a.room.localeCompare(b.room);
-  });
+  return Array.from(map.values())
+    .map((group) => ({
+      ...group,
+      sessions: group.sessions.slice().sort((a, b) => {
+        const sa = a.sheetIndex ?? 999999;
+        const sb = b.sheetIndex ?? 999999;
+        if (sa !== sb) return sa - sb;
+
+        const xa = a.sessionOrder ?? 999999;
+        const xb = b.sessionOrder ?? 999999;
+        if (xa !== xb) return xa - xb;
+
+        const ra = a.firstRowIndex ?? 999999;
+        const rb = b.firstRowIndex ?? 999999;
+        return ra - rb;
+      }),
+    }))
+    .sort((a, b) => {
+      if (a.firstSheetIndex !== b.firstSheetIndex)
+        return a.firstSheetIndex - b.firstSheetIndex;
+      if (a.firstSessionOrder !== b.firstSessionOrder)
+        return a.firstSessionOrder - b.firstSessionOrder;
+      return a.firstRowIndex - b.firstRowIndex;
+    });
 }
 
 async function fetchCurrentUserId(): Promise<string | null> {
@@ -146,6 +200,74 @@ async function fetchCurrentUserId(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+function StudentTable({
+  records,
+  locale,
+  isVi,
+}: {
+  records: ParsedExamRecord[];
+  locale: string;
+  isVi: boolean;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-[var(--border-main)]">
+      <table className="min-w-[1080px] w-full text-sm">
+        <thead>
+          <tr className="bg-[var(--bg-soft)] text-left">
+            <th className="px-4 py-3 font-semibold">STT</th>
+            <th className="px-4 py-3 font-semibold">MSSV</th>
+            <th className="px-4 py-3 font-semibold">
+              {isVi ? "Họ tên" : "Name"}
+            </th>
+            <th className="px-4 py-3 font-semibold">
+              {isVi ? "Lớp môn học" : "Course class"}
+            </th>
+            <th className="px-4 py-3 font-semibold">
+              {isVi ? "Lớp sinh hoạt" : "Student class"}
+            </th>
+            <th className="px-4 py-3 font-semibold">
+              {isVi ? "Ngày sinh" : "Birth date"}
+            </th>
+            <th className="px-4 py-3 font-semibold">
+              {isVi ? "Phòng" : "Room"}
+            </th>
+            <th className="px-4 py-3 font-semibold">
+              {isVi ? "Ca thi" : "Session"}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {records.map((record, index) => (
+            <tr
+              key={record.id}
+              className="border-t border-[var(--border-main)]/70"
+            >
+              <td className="px-4 py-3">{index + 1}</td>
+              <td className="px-4 py-3">{record.studentId || "—"}</td>
+              <td className="px-4 py-3">{record.studentName || "—"}</td>
+              <td className="px-4 py-3">{record.classCourse || "—"}</td>
+              <td className="px-4 py-3">{record.classStudent || "—"}</td>
+              <td className="px-4 py-3">{record.birthDate || "—"}</td>
+              <td className="px-4 py-3">
+                {sanitizeVisualText(record.room) || "—"}
+              </td>
+              <td className="px-4 py-3">
+                <div>
+                  {formatDate(record.examDate, locale)} •{" "}
+                  {record.startTime || "—"}
+                </div>
+                <div className="mt-1 text-xs app-text-muted">
+                  {sanitizeVisualText(record.campus) || "—"}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export default function ExamReportPage() {
@@ -183,7 +305,7 @@ export default function ExamReportPage() {
             setError(
               isVi
                 ? "Không xác định được người dùng hiện tại."
-                : "Cannot resolve current user."
+                : "Cannot resolve current user.",
             );
           }
           return;
@@ -192,14 +314,17 @@ export default function ExamReportPage() {
         const allRecords = await fetchExamsFromDb({ userId });
         if (cancelled) return;
 
-        const noticeRecords = allRecords.filter((x) => x.detailUrl === notice);
+        const noticeRecords = sortRecordsByExcelOrder(
+          allRecords.filter((x) => x.detailUrl === notice),
+        );
+
         setRecords(noticeRecords);
 
         if (!noticeRecords.length) {
           setError(
             isVi
               ? "Không tìm thấy dữ liệu cho file lịch / thông báo này."
-              : "No data found for this notice."
+              : "No data found for this notice.",
           );
         }
       } catch {
@@ -213,7 +338,9 @@ export default function ExamReportPage() {
 
     if (!notice) {
       setLoading(false);
-      setError(isVi ? "Thiếu tham số hồ sơ lịch." : "Missing notice parameter.");
+      setError(
+        isVi ? "Thiếu tham số hồ sơ lịch." : "Missing notice parameter.",
+      );
       return;
     }
 
@@ -228,70 +355,87 @@ export default function ExamReportPage() {
 
   const roomOptions = useMemo(
     () =>
-      Array.from(new Set(records.map((x) => sanitizeVisualText(x.room)).filter(Boolean))).sort(
-        (a, b) => a.localeCompare(b)
-      ),
-    [records]
+      Array.from(
+        new Set(records.map((x) => sanitizeVisualText(x.room)).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [records],
   );
 
   const classOptions = useMemo(
     () =>
       Array.from(
         new Set(
-          records.flatMap((x) => [x.classCourse || "", x.classStudent || ""]).filter(Boolean)
-        )
+          records
+            .flatMap((x) => [x.classCourse || "", x.classStudent || ""])
+            .filter(Boolean),
+        ),
       ).sort((a, b) => a.localeCompare(b)),
-    [records]
+    [records],
   );
 
   const sessionOptions = useMemo(
     () =>
       sessions.map((session) => ({
         id: session.id,
-        label: `${session.courseCode || "?"} • ${formatDate(session.examDate, locale)} • ${
-          session.startTime || "?"
-        } • ${sanitizeVisualText(session.room) || "?"}`,
+        label: `${session.courseCode || "?"} • ${formatDate(session.examDate, locale)} • ${session.startTime || "?"} • ${sanitizeVisualText(session.room) || "?"}`,
       })),
-    [locale, sessions]
+    [locale, sessions],
   );
 
   const filteredRecords = useMemo(() => {
     const qLoose = normalizeText(query);
     const qCompact = normalizeCompact(query);
 
-    return records.filter((record) => {
-      if (roomFilter !== "all" && sanitizeVisualText(record.room) !== roomFilter) return false;
+    const items = records.filter((record) => {
+      if (
+        roomFilter !== "all" &&
+        sanitizeVisualText(record.room) !== roomFilter
+      )
+        return false;
 
       if (classFilter !== "all") {
         const courseClass = record.classCourse || "";
         const studentClass = record.classStudent || "";
-        if (courseClass !== classFilter && studentClass !== classFilter) return false;
+        if (courseClass !== classFilter && studentClass !== classFilter)
+          return false;
       }
 
       if (sessionFilter !== "all") {
         const matched = sessions.find((s) => s.id === sessionFilter);
         if (!matched) return false;
-        if (
-          record.courseCode !== matched.courseCode ||
-          record.examDate !== matched.examDate ||
-          record.startTime !== matched.startTime ||
-          record.room !== matched.room ||
-          record.campus !== matched.campus
-        ) {
-          return false;
-        }
+
+        const sameSession =
+          record.sheetIndex === matched.sheetIndex &&
+          record.sessionOrder === matched.sessionOrder &&
+          record.courseCode === matched.courseCode &&
+          record.examDate === matched.examDate &&
+          record.startTime === matched.startTime &&
+          record.room === matched.room &&
+          record.campus === matched.campus;
+
+        if (!sameSession) return false;
       }
 
       if (!qLoose && !qCompact) return true;
 
       const idx = buildSearchText(record);
-      return idx.loose.includes(qLoose) || (qCompact ? idx.compact.includes(qCompact) : false);
+      return (
+        idx.loose.includes(qLoose) ||
+        (qCompact ? idx.compact.includes(qCompact) : false)
+      );
     });
+
+    return sortRecordsByExcelOrder(items);
   }, [classFilter, query, records, roomFilter, sessionFilter, sessions]);
 
-  const filteredSessions = useMemo(() => buildSessionSummaries(filteredRecords), [filteredRecords]);
-
-  const roomGroups = useMemo(() => groupRecordsByRoom(filteredRecords), [filteredRecords]);
+  const filteredSessions = useMemo(
+    () => buildSessionSummaries(filteredRecords),
+    [filteredRecords],
+  );
+  const roomGroups = useMemo(
+    () => groupSessionsByRoom(filteredSessions),
+    [filteredSessions],
+  );
 
   const stats = useMemo(() => {
     return {
@@ -299,10 +443,18 @@ export default function ExamReportPage() {
       visibleStudents: filteredRecords.length,
       totalSessions: sessions.length,
       visibleSessions: filteredSessions.length,
-      uniqueStudents: new Set(records.map((x) => x.studentId).filter(Boolean)).size,
-      uniqueRooms: new Set(records.map((x) => sanitizeVisualText(x.room)).filter(Boolean)).size,
+      uniqueStudents: new Set(records.map((x) => x.studentId).filter(Boolean))
+        .size,
+      uniqueRooms: new Set(
+        records.map((x) => sanitizeVisualText(x.room)).filter(Boolean),
+      ).size,
     };
-  }, [filteredRecords.length, filteredSessions.length, records, sessions.length]);
+  }, [
+    filteredRecords.length,
+    filteredSessions.length,
+    records,
+    sessions.length,
+  ]);
 
   const noticeTitle = records[0]?.noticeTitle || "";
   const attachmentName = records[0]?.attachmentName || "";
@@ -312,9 +464,8 @@ export default function ExamReportPage() {
 
   async function handleCopyStudentIds(session: ExamSessionSummary) {
     const ids = Array.from(
-      new Set(session.records.map((x) => x.studentId).filter(Boolean))
+      new Set(session.records.map((x) => x.studentId).filter(Boolean)),
     ).join("\n");
-
     if (!ids) return;
 
     try {
@@ -354,22 +505,34 @@ export default function ExamReportPage() {
               ) : null}
             </div>
           </div>
-
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => router.back()}
-              className="rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+              className="
+    inline-flex items-center justify-center
+    rounded-xl border px-4 py-2.5 text-sm font-bold transition
+    border-slate-300
+    bg-slate-900
+    text-white
+    shadow-[0_10px_28px_rgba(2,8,23,0.18)]
+    hover:-translate-y-[1px]
+    hover:bg-slate-800
+
+    dark:border-slate-600
+    dark:bg-white
+    dark:text-slate-900
+    dark:hover:bg-slate-100
+  "
             >
               {isVi ? "Quay lại" : "Back"}
             </button>
-
             {detailUrl ? (
               <a
                 href={detailUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-xl border border-cyan-400/15 bg-cyan-400/8 px-3.5 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/14"
+                className="rounded-xl border border-cyan-400/15 bg-cyan-400/8 px-4 py-2.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/14"
               >
                 {isVi ? "Mở nguồn gốc" : "Open source"}
               </a>
@@ -380,7 +543,7 @@ export default function ExamReportPage() {
                 href={attachmentUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-xl border border-emerald-400/15 bg-emerald-400/8 px-3.5 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/14"
+                className="rounded-xl border border-emerald-400/15 bg-emerald-400/8 px-4 py-2.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-400/14"
               >
                 {isVi ? "Tải file gốc" : "Download original file"}
               </a>
@@ -388,7 +551,7 @@ export default function ExamReportPage() {
 
             <Link
               href="/exams"
-              className="rounded-xl bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(59,130,246,0.28)] transition hover:brightness-110"
+              className="rounded-xl bg-[var(--accent)] px-2 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(59,130,246,0.28)] transition hover:brightness-110"
             >
               {isVi ? "Về danh sách thi" : "Back to exams"}
             </Link>
@@ -448,8 +611,8 @@ export default function ExamReportPage() {
             </div>
             <div className="text-xs app-text-muted">
               {isVi
-                ? "Tối giản hơn, gọn hơn, dễ tìm MSSV / họ tên / lớp / phòng."
-                : "Compact controls for searching by student, class, room, or session."}
+                ? "Giữ nguyên cấu trúc Excel nhưng hiển thị gọn, rõ và dễ tra cứu hơn."
+                : "Keeps the original Excel structure, but cleaner and easier to scan."}
             </div>
           </div>
 
@@ -458,7 +621,7 @@ export default function ExamReportPage() {
               type="button"
               onClick={() => setViewMode("session")}
               className={[
-                "rounded-xl px-3 py-2 text-sm font-medium transition",
+                "rounded-xl px-4 py-2.5 text-sm font-medium transition",
                 viewMode === "session" ? "app-btn-primary" : "app-btn",
               ].join(" ")}
             >
@@ -469,7 +632,7 @@ export default function ExamReportPage() {
               type="button"
               onClick={() => setViewMode("room")}
               className={[
-                "rounded-xl px-3 py-2 text-sm font-medium transition",
+                "rounded-xl px-4 py-2.5 text-sm font-medium transition",
                 viewMode === "room" ? "app-btn-primary" : "app-btn",
               ].join(" ")}
             >
@@ -486,7 +649,7 @@ export default function ExamReportPage() {
             id="exam-report-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="app-input h-11 text-sm"
+            className="app-input h-12 text-sm leading-none"
             placeholder={
               isVi
                 ? "Tìm MSSV, họ tên, lớp, môn, phòng..."
@@ -494,14 +657,11 @@ export default function ExamReportPage() {
             }
           />
 
-          <label htmlFor="exam-report-room-filter" className="sr-only">
-            {isVi ? "Lọc theo phòng" : "Filter by room"}
-          </label>
           <select
             id="exam-report-room-filter"
             aria-label={isVi ? "Lọc theo phòng" : "Filter by room"}
             title={isVi ? "Lọc theo phòng" : "Filter by room"}
-            className="app-input h-11 text-sm"
+            className="app-input h-12 text-sm leading-none"
             value={roomFilter}
             onChange={(e) => setRoomFilter(e.target.value)}
           >
@@ -513,14 +673,11 @@ export default function ExamReportPage() {
             ))}
           </select>
 
-          <label htmlFor="exam-report-class-filter" className="sr-only">
-            {isVi ? "Lọc theo lớp" : "Filter by class"}
-          </label>
           <select
             id="exam-report-class-filter"
             aria-label={isVi ? "Lọc theo lớp" : "Filter by class"}
             title={isVi ? "Lọc theo lớp" : "Filter by class"}
-            className="app-input h-11 text-sm"
+            className="app-input h-12 text-sm leading-none"
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
           >
@@ -532,18 +689,17 @@ export default function ExamReportPage() {
             ))}
           </select>
 
-          <label htmlFor="exam-report-session-filter" className="sr-only">
-            {isVi ? "Lọc theo phiên thi" : "Filter by session"}
-          </label>
           <select
             id="exam-report-session-filter"
             aria-label={isVi ? "Lọc theo phiên thi" : "Filter by session"}
             title={isVi ? "Lọc theo phiên thi" : "Filter by session"}
-            className="app-input h-11 text-sm"
+            className="app-input h-12 text-sm leading-none"
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
           >
-            <option value="all">{isVi ? "Tất cả phiên thi" : "All sessions"}</option>
+            <option value="all">
+              {isVi ? "Tất cả phiên thi" : "All sessions"}
+            </option>
             {sessionOptions.map((session) => (
               <option key={session.id} value={session.id}>
                 {session.label}
@@ -553,279 +709,184 @@ export default function ExamReportPage() {
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[0.92fr_1.08fr]">
-        <div className="app-section p-4 md:p-5">
-          <div className="mb-3">
-            <div className="text-base font-semibold">
-              {viewMode === "session"
-                ? isVi
-                  ? "Cụm phiên thi trong file này"
-                  : "Sessions in this notice"
-                : isVi
-                  ? "Tổng hợp theo phòng thi"
-                  : "Grouped by room"}
-            </div>
-            <div className="text-xs app-text-muted">
-              {viewMode === "session"
-                ? isVi
-                  ? "Tất cả ca thi lấy từ cùng một file lịch của trường."
-                  : "All sessions rebuilt from the same original workbook."
-                : isVi
-                  ? "Dữ liệu được gom theo từng phòng để kiểm tra phân bố."
-                  : "Data is grouped by room for allocation review."}
-            </div>
+      <section className="space-y-5">
+        {loading ? (
+          <div className="rounded-xl app-soft p-4 text-sm app-text-muted">
+            {t("common.loading")}
           </div>
-
-          <div className="space-y-3">
-            {loading ? (
-              <div className="rounded-xl app-soft p-4 text-sm app-text-muted">
-                {t("common.loading")}
-              </div>
-            ) : error ? (
-              <div className="rounded-xl border border-[var(--danger)]/20 bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">
-                {error}
-              </div>
-            ) : viewMode === "session" ? (
-              filteredSessions.length === 0 ? (
-                <div className="rounded-xl app-soft p-4 text-sm app-text-muted">
-                  {isVi ? "Không có phiên thi phù hợp." : "No matching sessions."}
-                </div>
-              ) : (
-                filteredSessions.map((session: ExamSessionSummary) => (
-                  <div
-                    key={session.id}
-                    className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-semibold">
-                          {session.courseCode || "—"}
-                          <span className="font-normal app-text-muted">
-                            {session.courseName ? ` • ${session.courseName}` : ""}
-                          </span>
-                        </div>
-                        <div className="mt-1 text-sm app-text-muted">
-                          {formatDate(session.examDate, locale)} • {session.startTime || "—"} •{" "}
-                          {sanitizeVisualText(session.room) || "—"}
-                          {session.campus ? ` • ${sanitizeVisualText(session.campus)}` : ""}
-                        </div>
-                        <div className="mt-2 text-xs app-text-muted">
-                          {sanitizeExamMeta(session.examMetaRaw) || "—"}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end gap-2">
-                        <span
-                          className={[
-                            "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                            getStatusTone(session.examDate),
-                          ].join(" ")}
-                        >
-                          {getCountdownLabel(session.examDate, t)}
-                        </span>
-
-                        <span
-                          className={[
-                            "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                            getDensityBadgeClass(session.studentCount),
-                          ].join(" ")}
-                        >
-                          {getDensityLabel(session.studentCount, isVi)}
-                        </span>
-                      </div>
+        ) : error ? (
+          <div className="rounded-xl border border-[var(--danger)]/20 bg-[var(--danger-soft)] p-4 text-sm text-[var(--danger)]">
+            {error}
+          </div>
+        ) : filteredSessions.length === 0 ? (
+          <div className="rounded-xl app-soft p-4 text-sm app-text-muted">
+            {isVi ? "Không có dữ liệu phù hợp." : "No matching data."}
+          </div>
+        ) : viewMode === "session" ? (
+          filteredSessions.map((session) => (
+            <section
+              key={session.id}
+              className="app-section overflow-hidden p-0"
+            >
+              <div className="border-b border-[var(--border-main)] px-4 py-4 md:px-5">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <div className="text-xl font-bold">
+                      {session.courseCode || "—"}
                     </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                      <span className="inline-flex rounded-full app-pill px-3 py-1 font-medium">
-                        {isVi
-                          ? `${session.studentCount} sinh viên`
-                          : `${session.studentCount} students`}
-                      </span>
-                      <span className="inline-flex rounded-full app-pill px-3 py-1 font-medium">
-                        {isVi
-                          ? `${session.classCourseCount} lớp môn học`
-                          : `${session.classCourseCount} course classes`}
-                      </span>
-                      <span className="inline-flex rounded-full app-pill px-3 py-1 font-medium">
-                        {isVi
-                          ? `${session.classStudentCount} lớp sinh hoạt`
-                          : `${session.classStudentCount} student classes`}
-                      </span>
+                    <div className="mt-1 text-sm app-text-muted">
+                      {session.courseName || "—"}
                     </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyStudentIds(session)}
-                        className="rounded-xl border border-violet-400/15 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-200 transition hover:bg-violet-500/16"
-                      >
-                        {copiedSessionId === session.id
-                          ? isVi
-                            ? "Đã copy MSSV"
-                            : "Student IDs copied"
-                          : isVi
-                            ? "Copy danh sách MSSV"
-                            : "Copy student IDs"}
-                      </button>
+                    <div className="mt-2 text-sm">
+                      {formatDate(session.examDate, locale)} •{" "}
+                      {session.startTime || "—"} •{" "}
+                      {sanitizeVisualText(session.room) || "—"}
+                      {session.campus
+                        ? ` • ${sanitizeVisualText(session.campus)}`
+                        : ""}
+                    </div>
+                    <div className="mt-2 text-xs app-text-muted">
+                      {sanitizeExamMeta(session.examMetaRaw) || "—"}
                     </div>
                   </div>
-                ))
-              )
-            ) : roomGroups.length === 0 ? (
-              <div className="rounded-xl app-soft p-4 text-sm app-text-muted">
-                {isVi ? "Không có phòng thi phù hợp." : "No matching rooms."}
-              </div>
-            ) : (
-              roomGroups.map((group) => (
-                <div
-                  key={group.room}
-                  className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="font-semibold">{group.room}</div>
-                      <div className="mt-1 text-sm app-text-muted">
-                        {group.campus ? sanitizeVisualText(group.campus) : "—"}
-                      </div>
-                    </div>
+
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                    <span
+                      className={[
+                        "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                        getStatusTone(session.examDate),
+                      ].join(" ")}
+                    >
+                      {getCountdownLabel(session.examDate, t)}
+                    </span>
 
                     <span
                       className={[
                         "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                        getDensityBadgeClass(group.totalStudents),
+                        getDensityBadgeClass(session.studentCount),
                       ].join(" ")}
                     >
-                      {getDensityLabel(group.totalStudents, isVi)}
+                      {getDensityLabel(session.studentCount, isVi)}
                     </span>
-                  </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    <span className="inline-flex rounded-full app-pill px-3 py-1 font-medium">
+                    <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
                       {isVi
-                        ? `${group.totalStudents} sinh viên`
-                        : `${group.totalStudents} students`}
+                        ? `${session.studentCount} sinh viên`
+                        : `${session.studentCount} students`}
                     </span>
-                    <span className="inline-flex rounded-full app-pill px-3 py-1 font-medium">
-                      {isVi
-                        ? `${group.sessions.length} phiên thi`
-                        : `${group.sessions.length} sessions`}
-                    </span>
-                  </div>
 
-                  <div className="mt-3 space-y-2">
-                    {group.sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="rounded-xl border border-[var(--border-main)]/70 bg-[var(--bg-soft)] px-3 py-2"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-sm font-medium">
-                            {session.courseCode || "—"}
-                            {session.courseName ? ` • ${session.courseName}` : ""}
-                          </div>
-                          <div className="text-xs app-text-muted">
-                            {formatDate(session.examDate, locale)} • {session.startTime || "—"} •{" "}
-                            {isVi
-                              ? `${session.studentCount} sinh viên`
-                              : `${session.studentCount} students`}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyStudentIds(session)}
+                      className="rounded-xl border border-violet-400/15 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-200 transition hover:bg-violet-500/16"
+                    >
+                      {copiedSessionId === session.id
+                        ? isVi
+                          ? "Đã copy MSSV"
+                          : "Student IDs copied"
+                        : isVi
+                          ? "Copy danh sách MSSV"
+                          : "Copy student IDs"}
+                    </button>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="app-section p-4 md:p-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-base font-semibold">
-                {isVi ? "Danh sách sinh viên" : "Student roster"}
               </div>
-              <div className="text-xs app-text-muted">
-                {isVi
-                  ? "Form này thay cho Excel thô, nhìn gọn và dễ tra cứu hơn."
-                  : "This replaces the raw spreadsheet with a cleaner in-app roster."}
+
+              <div className="p-4 md:p-5">
+                <StudentTable
+                  records={session.records}
+                  locale={locale}
+                  isVi={isVi}
+                />
               </div>
-            </div>
+            </section>
+          ))
+        ) : (
+          roomGroups.map((group) => (
+            <section
+              key={`${group.room}-${group.campus || ""}`}
+              className="app-section p-4 md:p-5"
+            >
+              <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="text-xl font-bold">{group.room}</div>
+                  <div className="mt-1 text-sm app-text-muted">
+                    {group.campus ? sanitizeVisualText(group.campus) : "—"}
+                  </div>
+                </div>
 
-            <div className="inline-flex rounded-full border border-[var(--border-main)] bg-[var(--bg-soft)] px-3 py-1 text-xs font-medium app-text-muted">
-              {isVi
-                ? `${filteredRecords.length} dòng hiển thị`
-                : `${filteredRecords.length} visible rows`}
-            </div>
-          </div>
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={[
+                      "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                      getDensityBadgeClass(group.totalStudents),
+                    ].join(" ")}
+                  >
+                    {getDensityLabel(group.totalStudents, isVi)}
+                  </span>
 
-          <div className="overflow-x-auto rounded-2xl border border-[var(--border-main)]">
-            <table className="min-w-[980px] w-full text-sm">
-              <thead>
-                <tr className="bg-[var(--bg-soft)] text-left">
-                  <th className="px-4 py-3 font-semibold">MSSV</th>
-                  <th className="px-4 py-3 font-semibold">{isVi ? "Họ tên" : "Name"}</th>
-                  <th className="px-4 py-3 font-semibold">
-                    {isVi ? "Lớp môn học" : "Course class"}
-                  </th>
-                  <th className="px-4 py-3 font-semibold">
-                    {isVi ? "Lớp sinh hoạt" : "Student class"}
-                  </th>
-                  <th className="px-4 py-3 font-semibold">
-                    {isVi ? "Ngày sinh" : "Birth date"}
-                  </th>
-                  <th className="px-4 py-3 font-semibold">{isVi ? "Ca thi" : "Session"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center app-text-muted">
-                      {t("common.loading")}
-                    </td>
-                  </tr>
-                ) : error ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-[var(--danger)]">
-                      {error}
-                    </td>
-                  </tr>
-                ) : filteredRecords.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center app-text-muted">
-                      {isVi ? "Không có dữ liệu phù hợp." : "No matching data."}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredRecords.map((record) => (
-                    <tr key={record.id} className="border-t border-[var(--border-main)]/70">
-                      <td className="px-4 py-3">{record.studentId || "—"}</td>
-                      <td className="px-4 py-3">{record.studentName || "—"}</td>
-                      <td className="px-4 py-3">{record.classCourse || "—"}</td>
-                      <td className="px-4 py-3">{record.classStudent || "—"}</td>
-                      <td className="px-4 py-3">{record.birthDate || "—"}</td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm">
-                          {formatDate(record.examDate, locale)} • {record.startTime || "—"}
+                  <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                    {isVi
+                      ? `${group.totalStudents} sinh viên`
+                      : `${group.totalStudents} students`}
+                  </span>
+
+                  <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                    {isVi
+                      ? `${group.sessions.length} phiên thi`
+                      : `${group.sessions.length} sessions`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {group.sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4"
+                  >
+                    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold">
+                          {session.courseCode || "—"}
+                          <span className="font-normal app-text-muted">
+                            {session.courseName
+                              ? ` • ${session.courseName}`
+                              : ""}
+                          </span>
                         </div>
-                        <div className="mt-1 text-xs app-text-muted">
-                          {sanitizeVisualText(record.room) || "—"}
+                        <div className="mt-1 text-sm app-text-muted">
+                          {formatDate(session.examDate, locale)} •{" "}
+                          {session.startTime || "—"} •{" "}
+                          {sanitizeVisualText(session.room) || "—"}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
 
-          <div className="mt-3 text-xs app-text-muted">
-            {isVi
-              ? `Cập nhật giao diện lúc: ${formatDateTime(new Date().toISOString(), locale)}`
-              : `Rendered at: ${formatDateTime(new Date().toISOString(), locale)}`}
-          </div>
-        </div>
+                      <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                        {isVi
+                          ? `${session.studentCount} sinh viên`
+                          : `${session.studentCount} students`}
+                      </span>
+                    </div>
+
+                    <StudentTable
+                      records={session.records}
+                      locale={locale}
+                      isVi={isVi}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))
+        )}
       </section>
+
+      <div className="text-xs app-text-muted">
+        {isVi
+          ? `Cập nhật giao diện lúc: ${formatDateTime(new Date().toISOString(), locale)}`
+          : `Rendered at: ${formatDateTime(new Date().toISOString(), locale)}`}
+      </div>
     </div>
   );
 }

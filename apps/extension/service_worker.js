@@ -1,9 +1,17 @@
+// path: apps/extension/service_worker.js
 const MYDTU_TIMETABLE_URL =
   "https://mydtu.duytan.edu.vn/sites/index.aspx?p=home_timetable&functionid=13";
 
 const PDOATAO_EXAM_LIST_URL =
   "https://pdaotao.duytan.edu.vn/EXAM_LIST/?page=1&lang=VN";
 
+const MYDTU_TRANSCRIPT_URL =
+  "https://mydtu.duytan.edu.vn/sites/index.aspx?p=home_bangdiem&functionid=14";
+const MYDTU_TRANSCRIPT_DETAIL_URL =
+  "https://mydtu.duytan.edu.vn/sites/index.aspx?p=home_grading_classbysemester&functionid=82";
+
+const TRANSCRIPT_ADAPTER_KEY = "mydtu_transcript_v1";
+const TRANSCRIPT_ADAPTER_VERSION = "4.0.0";
 const EXAM_ADAPTER_KEY = "pdaotao_exam_v1";
 const EXAM_ADAPTER_VERSION = "1.0.0";
 const ADAPTER_KEY = "mydtu_timetable_v1";
@@ -33,17 +41,6 @@ function clampNumber(value, min, max, fallback) {
   return Math.min(max, Math.max(min, i));
 }
 
-function hasTimetableMarkers(html) {
-  const text = String(html || "");
-  return (
-    text.includes("Lịch học") ||
-    text.includes("L&#7883;ch h&#7885;c") ||
-    text.includes("rsContentTable") ||
-    text.includes("rsApt") ||
-    text.includes("RadScheduler")
-  );
-}
-
 async function withTimeout(promise, timeoutMs, label) {
   let timer = null;
 
@@ -63,7 +60,7 @@ async function withTimeout(promise, timeoutMs, label) {
 async function checkSession() {
   try {
     const res = await withTimeout(
-      fetch(MYDTU_TIMETABLE_URL, {
+      fetch(MYDTU_TRANSCRIPT_URL, {
         method: "GET",
         credentials: "include",
         cache: "no-store",
@@ -73,7 +70,17 @@ async function checkSession() {
     );
 
     const html = await withTimeout(res.text(), 8000, "checkSession read html");
-    const ok = res.ok && hasTimetableMarkers(html);
+    const text = String(html || "");
+
+    const ok =
+      res.ok &&
+      (text.includes("Bảng điểm") ||
+        text.includes("Bảng Điểm") ||
+        text.includes("Sinh viên:") ||
+        text.includes("Mã Sinh viên") ||
+        text.includes("myDUYTAN")) &&
+      !text.includes("login") &&
+      !text.includes("dang nhap");
 
     return {
       connected: ok,
@@ -175,9 +182,7 @@ async function openOrFocusExamPage() {
     url: ["https://pdaotao.duytan.edu.vn/*"],
   });
 
-  const exact = tabs.find((t) =>
-    String(t.url || "").includes("/EXAM_LIST/"),
-  );
+  const exact = tabs.find((t) => String(t.url || "").includes("/EXAM_LIST/"));
 
   if (exact?.id) {
     await chrome.tabs.update(exact.id, {
@@ -218,9 +223,7 @@ async function ensureExamTab() {
     url: ["https://pdaotao.duytan.edu.vn/*"],
   });
 
-  const exact = tabs.find((t) =>
-    String(t.url || "").includes("/EXAM_LIST/"),
-  );
+  const exact = tabs.find((t) => String(t.url || "").includes("/EXAM_LIST/"));
 
   if (exact?.id) {
     if (exact.url !== PDOATAO_EXAM_LIST_URL) {
@@ -708,6 +711,171 @@ function dedupeItems(items) {
   return out;
 }
 
+function buildWaitTranscriptReadyFunction() {
+  return async () => {
+    function normalizeSpace(value) {
+      return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+    }
+
+    function hasTranscriptReady() {
+      if (document.querySelector("table.tb-chinhsualich")) return true;
+      if (document.querySelector("table.diemchitiet")) return true;
+      if (document.querySelector("td[id^='area-bangdiem'] table")) return true;
+
+      const text = normalizeSpace(document.body?.innerText || "");
+      return (
+        text.includes("bảng điểm sinh viên") &&
+        text.includes("mã sinh viên")
+      );
+    }
+
+    const started = Date.now();
+    while (Date.now() - started < 15000) {
+      if (hasTranscriptReady()) {
+        return { ok: true };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+
+    return {
+      ok: false,
+      error: "Transcript page did not render in time.",
+    };
+  };
+}
+
+async function openOrFocusTranscriptPage() {
+  const tabs = await chrome.tabs.query({
+    url: ["https://mydtu.duytan.edu.vn/*"],
+  });
+
+  const exact = tabs.find((t) =>
+    String(t.url || "").includes("p=home_bangdiem"),
+  );
+
+  if (exact?.id) {
+    await chrome.tabs.update(exact.id, {
+      active: true,
+      url: MYDTU_TRANSCRIPT_URL,
+    });
+
+    if (exact.windowId) {
+      await chrome.windows.update(exact.windowId, { focused: true });
+    }
+
+    return { tabId: exact.id, reused: true };
+  }
+
+  if (tabs[0]?.id) {
+    await chrome.tabs.update(tabs[0].id, {
+      active: true,
+      url: MYDTU_TRANSCRIPT_URL,
+    });
+
+    if (tabs[0].windowId) {
+      await chrome.windows.update(tabs[0].windowId, { focused: true });
+    }
+
+    return { tabId: tabs[0].id, reused: true };
+  }
+
+  const created = await chrome.tabs.create({
+    url: MYDTU_TRANSCRIPT_URL,
+    active: true,
+  });
+
+  return { tabId: created.id, reused: false };
+}
+
+async function ensureTranscriptTab() {
+  const tabs = await chrome.tabs.query({
+    url: ["https://mydtu.duytan.edu.vn/*"],
+  });
+
+  const exact = tabs.find((t) =>
+    String(t.url || "").includes("p=home_bangdiem"),
+  );
+
+  if (exact?.id) {
+    if (exact.url !== MYDTU_TRANSCRIPT_URL) {
+      await chrome.tabs.update(exact.id, {
+        url: MYDTU_TRANSCRIPT_URL,
+        active: false,
+      });
+    }
+    return exact.id;
+  }
+
+  if (tabs[0]?.id) {
+    await chrome.tabs.update(tabs[0].id, {
+      url: MYDTU_TRANSCRIPT_URL,
+      active: false,
+    });
+    return tabs[0].id;
+  }
+
+  const created = await chrome.tabs.create({
+    url: MYDTU_TRANSCRIPT_URL,
+    active: false,
+  });
+
+  if (!created.id) {
+    throw new Error("Không tạo được tab bảng điểm MYDTU.");
+  }
+
+  return created.id;
+}
+
+async function syncTranscriptFromTab() {
+  log("syncTranscriptFromTab:start");
+
+  const session = await checkSession();
+  if (!session.connected) {
+    return {
+      ok: false,
+      error: "Bạn chưa đăng nhập MYDTU hoặc phiên đăng nhập đã hết hạn.",
+    };
+  }
+
+  const tabId = await ensureTranscriptTab();
+
+  await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
+  await sleep(3000);
+
+  const waitReady = await executeInTab(
+    tabId,
+    buildWaitTranscriptReadyFunction(),
+    [],
+    "waitTranscriptReady",
+  );
+
+  log("waitTranscriptReady", waitReady);
+
+  const response = await sendMessageToTabWithRetry(
+    tabId,
+    {
+      type: "SCRAPE_TRANSCRIPT",
+    },
+    3,
+  );
+
+  if (!response?.ok) {
+    return {
+      ok: false,
+      error: response?.error || "Không scrape được bảng điểm từ MYDTU.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      adapterKey: TRANSCRIPT_ADAPTER_KEY,
+      adapterVersion: TRANSCRIPT_ADAPTER_VERSION,
+      ...response.data,
+    },
+  };
+}
+
 async function syncTimetableFromTab(options = {}) {
   log("syncTimetableFromTab:start", options);
 
@@ -743,9 +911,7 @@ async function syncTimetableFromTab(options = {}) {
 
   const currentWeek = await scrapeCurrentWeek(tabId);
   const currentWeekLabel =
-    currentWeek?.meta?.weekLabel ||
-    currentWeek?.payload?.semester ||
-    "CURRENT";
+    currentWeek?.meta?.weekLabel || currentWeek?.payload?.semester || "CURRENT";
 
   visitedWeekLabels.add(currentWeekLabel);
 
@@ -758,9 +924,7 @@ async function syncTimetableFromTab(options = {}) {
 
     const week = await scrapeCurrentWeek(tabId);
     const weekLabel =
-      week?.meta?.weekLabel ||
-      week?.payload?.semester ||
-      `NEXT_${i + 1}`;
+      week?.meta?.weekLabel || week?.payload?.semester || `NEXT_${i + 1}`;
 
     if (visitedWeekLabels.has(weekLabel)) {
       log("duplicate week detected, stop forward sync at", weekLabel);
@@ -787,9 +951,7 @@ async function syncTimetableFromTab(options = {}) {
 
     const week = await scrapeCurrentWeek(tabId);
     const weekLabel =
-      week?.meta?.weekLabel ||
-      week?.payload?.semester ||
-      `PREV_${i + 1}`;
+      week?.meta?.weekLabel || week?.payload?.semester || `PREV_${i + 1}`;
 
     if (visitedWeekLabels.has(weekLabel)) {
       log("duplicate week detected, stop backward sync at", weekLabel);
@@ -874,7 +1036,127 @@ async function syncExamsFromPdaotao(options = {}) {
     },
   };
 }
+async function openOrFocusTranscriptDetailPage() {
+  const tabs = await chrome.tabs.query({
+    url: ["https://mydtu.duytan.edu.vn/*"],
+  });
 
+  const exact = tabs.find((t) =>
+    String(t.url || "").includes("p=home_grading_classbysemester"),
+  );
+
+  if (exact?.id) {
+    await chrome.tabs.update(exact.id, {
+      active: true,
+      url: MYDTU_TRANSCRIPT_DETAIL_URL,
+    });
+
+    if (exact.windowId) {
+      await chrome.windows.update(exact.windowId, { focused: true });
+    }
+
+    return { tabId: exact.id, reused: true };
+  }
+
+  if (tabs[0]?.id) {
+    await chrome.tabs.update(tabs[0].id, {
+      active: true,
+      url: MYDTU_TRANSCRIPT_DETAIL_URL,
+    });
+
+    if (tabs[0].windowId) {
+      await chrome.windows.update(tabs[0].windowId, { focused: true });
+    }
+
+    return { tabId: tabs[0].id, reused: true };
+  }
+
+  const created = await chrome.tabs.create({
+    url: MYDTU_TRANSCRIPT_DETAIL_URL,
+    active: true,
+  });
+
+  return { tabId: created.id, reused: false };
+}
+
+async function ensureTranscriptDetailTab() {
+  const tabs = await chrome.tabs.query({
+    url: ["https://mydtu.duytan.edu.vn/*"],
+  });
+
+  const exact = tabs.find((t) =>
+    String(t.url || "").includes("p=home_grading_classbysemester"),
+  );
+
+  if (exact?.id) {
+    if (exact.url !== MYDTU_TRANSCRIPT_DETAIL_URL) {
+      await chrome.tabs.update(exact.id, {
+        url: MYDTU_TRANSCRIPT_DETAIL_URL,
+        active: false,
+      });
+    }
+    return exact.id;
+  }
+
+  if (tabs[0]?.id) {
+    await chrome.tabs.update(tabs[0].id, {
+      url: MYDTU_TRANSCRIPT_DETAIL_URL,
+      active: false,
+    });
+    return tabs[0].id;
+  }
+
+  const created = await chrome.tabs.create({
+    url: MYDTU_TRANSCRIPT_DETAIL_URL,
+    active: false,
+  });
+
+  if (!created.id) {
+    throw new Error("Không tạo được tab bảng điểm chi tiết MYDTU.");
+  }
+
+  return created.id;
+}
+async function syncTranscriptDetailFromTab() {
+  log("syncTranscriptDetailFromTab:start");
+
+  const session = await checkSession();
+  if (!session.connected) {
+    return {
+      ok: false,
+      error: "Bạn chưa đăng nhập MYDTU hoặc phiên đăng nhập đã hết hạn.",
+    };
+  }
+
+  const tabId = await ensureTranscriptDetailTab();
+
+  await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
+  await sleep(2600);
+
+  const response = await sendMessageToTabWithRetry(
+    tabId,
+    {
+      type: "SCRAPE_TRANSCRIPT_DETAIL",
+    },
+    3,
+  );
+
+  if (!response?.ok) {
+    return {
+      ok: false,
+      error: response?.error || "Không scrape được bảng điểm chi tiết từ MYDTU.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      adapterKey: "mydtu_transcript_detail_v1",
+      adapterVersion: "1.0.0",
+      ...response.data,
+    },
+  };
+}
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   let responded = false;
 
@@ -918,6 +1200,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (msg.action === "MYDTU_OPEN_EXAM_PAGE") {
         const r = await openOrFocusExamPage();
         reply({ ok: true, data: r });
+        return;
+      }
+
+      if (msg.action === "MYDTU_OPEN_TRANSCRIPT_PAGE") {
+        const r = await openOrFocusTranscriptPage();
+        reply({ ok: true, data: r });
+        return;
+      }
+
+      if (msg.action === "MYDTU_SYNC_TRANSCRIPT") {
+        const r = await syncTranscriptFromTab();
+        reply(r);
         return;
       }
 

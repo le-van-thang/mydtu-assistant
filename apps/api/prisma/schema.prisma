@@ -71,10 +71,11 @@ model User {
   settings    UserSettings?
   imports     ImportSession[]
 
-  transcripts Transcript[]
-  timetables  Timetable[]
-  sections    ClassSection[]
-  evaluations EvaluationDraft[]
+  transcripts          Transcript[]
+  transcriptComponents TranscriptComponent[]
+  timetables           Timetable[]
+  sections             ClassSection[]
+  evaluations          EvaluationDraft[]
 
   examNotices ExamNotice[]
   examRecords ExamRecord[]
@@ -127,14 +128,15 @@ model ImportSession {
   finishedAt     DateTime?
   createdAt      DateTime @default(now())
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  transcripts    Transcript[]
-  timetables     Timetable[]
-  sections       ClassSection[]
-  evaluations    EvaluationDraft[]
-  examNotices    ExamNotice[]
-  examRecords    ExamRecord[]
+  transcripts          Transcript[]
+  transcriptComponents TranscriptComponent[]
+  timetables           Timetable[]
+  sections             ClassSection[]
+  evaluations          EvaluationDraft[]
+  examNotices          ExamNotice[]
+  examRecords          ExamRecord[]
 
   @@unique([userId, adapterKey, adapterVersion, payloadHash], name: "uq_importsession_idempotent")
   @@index([userId, startedAt])
@@ -147,6 +149,7 @@ model Transcript {
   importId    String?
 
   courseCode  String
+  classCode   String       @default("")
   courseName  String
   credits     Int
 
@@ -170,9 +173,55 @@ model Transcript {
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   import      ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, courseCode, semester], name: "uq_transcript_natural")
+  components  TranscriptComponent[]
+
+  @@unique([userId, courseCode, classCode, semester], name: "uq_transcript_natural")
   @@index([userId, semester])
   @@index([courseCode])
+  @@index([userId, classCode])
+}
+
+model TranscriptComponent {
+  id                 String   @id @default(cuid())
+  userId             String
+  importId           String?
+  transcriptId       String
+
+  semester           String
+  courseCode         String
+  classCode          String   @default("")
+  courseName         String?
+
+  componentKey       String?
+  componentLabel     String
+  score1             Float?
+  score2             Float?
+  scaleScore         Float?
+  weightPercent      Float?
+  contributionScore  Float?
+  contributionMax    Float?
+  displayOrder       Int      @default(0)
+
+  rawText            String?  @db.Text
+
+  adapterKey         String
+  adapterVersion     String
+  sourcePage         String
+  lastSyncedAt       DateTime @default(now())
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  import             ImportSession?        @relation(fields: [importId], references: [id], onDelete: SetNull)
+  transcript         Transcript            @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  @@index([userId, semester])
+  @@index([userId, courseCode])
+  @@index([userId, classCode])
+  @@index([transcriptId])
+  @@index([userId, transcriptId, displayOrder])
+  @@unique([transcriptId, componentLabel, displayOrder], name: "uq_transcript_component_row")
 }
 
 model Timetable {

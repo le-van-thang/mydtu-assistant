@@ -168,45 +168,47 @@ importRouter.post("/", async (req, res) => {
         });
 
         await tx.transcript.upsert({
-          where: {
-            uq_transcript_natural: {
-              userId: user.id,
-              courseCode: t.courseCode,
-              semester: semesterKey,
-            },
-          },
-          create: {
-            userId: user.id,
-            importId: importSession.id,
-            courseCode: t.courseCode,
-            courseName: t.courseName,
-            credits: t.credits,
-            semester: semesterKey,
-            score10,
-            letter,
-            gpa4: g.gpa4,
-            status,
-            componentsBreakdown: t.componentsBreakdown ?? null,
-            adapterKey,
-            adapterVersion,
-            sourcePage,
-          },
-          update: {
-            importId: importSession.id,
-            courseName: t.courseName,
-            credits: t.credits,
-            score10,
-            letter,
-            gpa4: g.gpa4,
-            status,
-            componentsBreakdown: t.componentsBreakdown ?? null,
-            adapterKey,
-            adapterVersion,
-            sourcePage,
-            lastSyncedAt: new Date(),
-          },
-        });
-
+  where: {
+    uq_transcript_natural: {
+      userId: user.id,
+      courseCode: t.courseCode,
+      classCode: String((t as any).classCode ?? "").trim(),
+      semester: semesterKey,
+    },
+  },
+  create: {
+    userId: user.id,
+    importId: importSession.id,
+    courseCode: t.courseCode,
+    classCode: String((t as any).classCode ?? "").trim(),
+    courseName: t.courseName,
+    credits: t.credits,
+    semester: semesterKey,
+    score10,
+    letter,
+    gpa4: g.gpa4,
+    status,
+    componentsBreakdown: t.componentsBreakdown ?? null,
+    adapterKey,
+    adapterVersion,
+    sourcePage,
+  },
+  update: {
+    importId: importSession.id,
+    classCode: String((t as any).classCode ?? "").trim(),
+    courseName: t.courseName,
+    credits: t.credits,
+    score10,
+    letter,
+    gpa4: g.gpa4,
+    status,
+    componentsBreakdown: t.componentsBreakdown ?? null,
+    adapterKey,
+    adapterVersion,
+    sourcePage,
+    lastSyncedAt: new Date(),
+  },
+});
         transcriptsUpserted++;
       }
 

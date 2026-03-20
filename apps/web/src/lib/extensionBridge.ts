@@ -1,3 +1,4 @@
+// path: apps/web/src/lib/extensionBridge.ts
 "use client";
 
 export type TimetableItemFromExtension = {
@@ -56,6 +57,36 @@ export type ExamSyncPayload = {
   notices: ExamNoticeFromExtension[];
 };
 
+export type TranscriptItemFromExtension = {
+  semester: string;
+  courseCode: string;
+  classCode?: string | null;
+  courseName: string;
+  credits: number;
+  score10: number | null;
+  letter: string | null;
+  gpa4: number | null;
+  status: string | null;
+  componentsBreakdown?: Record<string, unknown> | null;
+  rawRow?: string | null;
+};
+
+export type TranscriptSyncPayload = {
+  adapterKey: string;
+  adapterVersion: string;
+  sourcePage: string;
+  scrapedAt: string;
+  student: {
+    studentId: string | null;
+    fullName: string | null;
+  } | null;
+  items: TranscriptItemFromExtension[];
+  meta?: {
+    totalSemesters?: number;
+    totalItems?: number;
+  };
+};
+
 export type ExtensionResponse<T = unknown> = {
   source: "mydtu-assistant-extension";
   requestId: string;
@@ -100,7 +131,6 @@ function sendToExtension<T = unknown>(
     }
 
     window.addEventListener("message", onMessage);
-
     window.postMessage(
       {
         source: WEB_SOURCE,
@@ -155,10 +185,7 @@ export async function requestSyncFromExtension(
       };
     }
 
-    return {
-      ok: true as const,
-      payload: res.data,
-    };
+    return { ok: true as const, payload: res.data };
   } catch (e) {
     return {
       ok: false as const,
@@ -196,10 +223,7 @@ export async function requestExamSync(options?: {
       };
     }
 
-    return {
-      ok: true as const,
-      payload: res.data,
-    };
+    return { ok: true as const, payload: res.data };
   } catch (e) {
     return {
       ok: false as const,
@@ -224,14 +248,71 @@ export async function openExamPageInExtension() {
       };
     }
 
-    return {
-      ok: true as const,
-      payload: res.data ?? null,
-    };
+    return { ok: true as const, payload: res.data ?? null };
   } catch (e) {
     return {
       ok: false as const,
       error: String((e as Error)?.message || e),
     };
   }
-} 
+}
+
+export async function requestTranscriptSync() {
+  try {
+    const res = await sendToExtension<TranscriptSyncPayload>(
+      "MYDTU_SYNC_TRANSCRIPT",
+      {
+        includeOverallTranscript: true,
+        includeDetailedTranscript: false,
+      },
+      DEFAULT_TIMEOUT_MS,
+      "Extension background did not respond in time.",
+    );
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: res.error || "Extension transcript sync failed.",
+      };
+    }
+
+    if (!res.data) {
+      return {
+        ok: false as const,
+        error: "Extension returned empty transcript data.",
+      };
+    }
+
+    return { ok: true as const, payload: res.data };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}
+
+export async function openTranscriptPageInExtension() {
+  try {
+    const res = await sendToExtension<{ tabId: number; reused: boolean }>(
+      "MYDTU_OPEN_TRANSCRIPT_PAGE",
+      null,
+      30000,
+      "Open transcript page timeout.",
+    );
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: res.error || "Cannot open transcript page.",
+      };
+    }
+
+    return { ok: true as const, payload: res.data ?? null };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}

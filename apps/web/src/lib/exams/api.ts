@@ -35,6 +35,12 @@ export type ExamsApiRecord = {
   birthDate: string | null;
   birthDateRaw?: string | null;
   note: string | null;
+
+  sheetName?: string | null;
+  sheetIndex?: number | null;
+  rowIndex?: number | null;
+  sessionOrder?: number | null;
+  recordOrder?: number | null;
 };
 
 export type ImportExamNoticePayload = {
@@ -202,6 +208,11 @@ export function mapDbRecordToParsedRecord(
     classStudent: item.classStudent,
     birthDate: item.birthDate,
     note: item.note,
+    sheetName: (item as any).sheetName ?? null,
+sheetIndex: (item as any).sheetIndex ?? null,
+rowIndex: (item as any).rowIndex ?? null,
+sessionOrder: (item as any).sessionOrder ?? null,
+recordOrder: (item as any).recordOrder ?? null,
   };
 }
 
@@ -230,8 +241,14 @@ export function mapParsedRecordToImportRecord(record: ParsedExamRecord) {
     birthDate: record.birthDate,
     note: record.note,
     planType: record.planType,
+    sheetName: record.sheetName ?? null,
+sheetIndex: record.sheetIndex ?? null,
+rowIndex: record.rowIndex ?? null,
+sessionOrder: record.sessionOrder ?? null,
+recordOrder: record.recordOrder ?? null,
     parseStatus: "parsed" as const,
     rawRow: undefined,
+    
   };
 }
 
