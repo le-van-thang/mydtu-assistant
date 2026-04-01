@@ -43,6 +43,7 @@ export type ExamNoticeFromExtension = {
   attachmentUrl: string | null;
   attachmentName: string | null;
   attachmentBase64: string | null;
+  attachmentMimeType?: string | null;
   detailText?: string;
   detailError?: string;
   attachmentError?: string;
@@ -87,6 +88,49 @@ export type TranscriptSyncPayload = {
   };
 };
 
+export type TranscriptDetailRowFromExtension = {
+  semester: string;
+  academicYear?: string | null;
+  term?: string | null;
+
+  classCode: string;
+  courseCode: string;
+  courseName: string;
+
+  method?: string | null;
+  level?: string | null;
+  detailUrl?: string | null;
+
+  componentKey?: string | null;
+  componentLabel: string;
+
+  score1: number | null;
+  score2: number | null;
+  scaleScore: number | null;
+  weightPercent: number | null;
+  contributionMax: number | null;
+  contributionScore: number | null;
+
+  displayOrder?: number;
+  rawText?: string | null;
+};
+
+export type TranscriptDetailSyncPayload = {
+  adapterKey: string;
+  adapterVersion: string;
+  sourcePage: string;
+  scrapedAt: string;
+  items: TranscriptDetailRowFromExtension[];
+  meta?: {
+    totalItems?: number;
+    totalClasses?: number;
+    totalSemesters?: number;
+    requestedSemesters?: string[];
+    scannedSemesters?: string[];
+    skippedSemesters?: string[];
+  };
+};
+
 export type ExtensionResponse<T = unknown> = {
   source: "mydtu-assistant-extension";
   requestId: string;
@@ -95,12 +139,33 @@ export type ExtensionResponse<T = unknown> = {
   error?: string | null;
 };
 
+export type ExamSyncJobState = {
+  ok: boolean;
+  done: boolean;
+  status: "queued" | "running" | "success" | "error";
+  progress: number;
+  message: string;
+  error: string | null;
+  result: ExamSyncPayload | null;
+  createdAt: number;
+  updatedAt: number;
+};
+
 const WEB_SOURCE = "mydtu-assistant-web";
 const EXT_SOURCE = "mydtu-assistant-extension";
+
 const DEFAULT_TIMEOUT_MS = 300000;
+const OPEN_PAGE_TIMEOUT_MS = 30000;
+const TRANSCRIPT_DETAIL_TIMEOUT_MS = 720000;
+const EXAM_JOB_POLL_INTERVAL_MS = 1500;
+const EXAM_JOB_MAX_POLLS = 800; // ~20 phút
 
 function makeRequestId() {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function sendToExtension<T = unknown>(
@@ -112,8 +177,17 @@ function sendToExtension<T = unknown>(
   const requestId = makeRequestId();
 
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => {
+    let settled = false;
+
+    const cleanup = () => {
+      window.clearTimeout(timer);
       window.removeEventListener("message", onMessage);
+    };
+
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       reject(new Error(timeoutMessage));
     }, timeoutMs);
 
@@ -125,12 +199,14 @@ function sendToExtension<T = unknown>(
       if (msg.source !== EXT_SOURCE) return;
       if (msg.requestId !== requestId) return;
 
-      window.clearTimeout(timer);
-      window.removeEventListener("message", onMessage);
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(msg);
     }
 
     window.addEventListener("message", onMessage);
+
     window.postMessage(
       {
         source: WEB_SOURCE,
@@ -194,36 +270,123 @@ export async function requestSyncFromExtension(
   }
 }
 
+export async function startExamSyncJob(options?: {
+  maxPages?: number;
+  maxItems?: number;
+}) {
+  try {
+    const res = await sendToExtension<{ jobId: string }>(
+      "MYDTU_START_EXAM_SYNC",
+      {
+        maxPages: options?.maxPages ?? 2,
+        maxItems: options?.maxItems ?? 24,
+      },
+      OPEN_PAGE_TIMEOUT_MS,
+      "Không khởi động được job đồng bộ lịch thi.",
+    );
+
+    if (!res.ok || !res.data?.jobId) {
+      return {
+        ok: false as const,
+        error: res.error || "Không tạo được job đồng bộ lịch thi.",
+      };
+    }
+
+    return {
+      ok: true as const,
+      jobId: res.data.jobId,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}
+
+export async function getExamSyncJobStatus(jobId: string) {
+  try {
+    const res = await sendToExtension<ExamSyncJobState>(
+      "MYDTU_GET_EXAM_SYNC_STATUS",
+      { jobId },
+      30000,
+      "Không lấy được trạng thái job đồng bộ lịch thi.",
+    );
+
+    if (!res.ok || !res.data) {
+      return {
+        ok: false as const,
+        error: res.error || "Không đọc được trạng thái job.",
+      };
+    }
+
+    return {
+      ok: true as const,
+      payload: res.data,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}
+
+/**
+ * Giữ nguyên API cũ cho UI hiện tại.
+ * Nhưng bên trong chuyển sang luồng async job + polling,
+ * nên không còn bị timeout kiểu blocking nữa.
+ */
 export async function requestExamSync(options?: {
   maxPages?: number;
   maxItems?: number;
 }) {
   try {
-    const res = await sendToExtension<ExamSyncPayload>(
-      "MYDTU_SYNC_EXAMS",
-      {
-        maxPages: options?.maxPages ?? 2,
-        maxItems: options?.maxItems ?? 24,
-      },
-      DEFAULT_TIMEOUT_MS,
-      "Extension background did not respond in time.",
-    );
+    const started = await startExamSyncJob({
+      maxPages: options?.maxPages ?? 2,
+      maxItems: options?.maxItems ?? 24,
+    });
 
-    if (!res.ok) {
+    if (!started.ok) {
       return {
         ok: false as const,
-        error: res.error || "Extension exam sync failed.",
+        error: started.error || "Không khởi động được đồng bộ lịch thi.",
       };
     }
 
-    if (!res.data) {
-      return {
-        ok: false as const,
-        error: "Extension returned empty exam data.",
-      };
+    for (let i = 0; i < EXAM_JOB_MAX_POLLS; i += 1) {
+      const statusRes = await getExamSyncJobStatus(started.jobId);
+
+      if (!statusRes.ok) {
+        return {
+          ok: false as const,
+          error: statusRes.error || "Không lấy được trạng thái đồng bộ lịch thi.",
+        };
+      }
+
+      const job = statusRes.payload;
+
+      if (job.done && job.status === "success" && job.result) {
+        return {
+          ok: true as const,
+          payload: job.result,
+        };
+      }
+
+      if (job.done && job.status === "error") {
+        return {
+          ok: false as const,
+          error: job.error || job.message || "Đồng bộ lịch thi thất bại.",
+        };
+      }
+
+      await delay(EXAM_JOB_POLL_INTERVAL_MS);
     }
 
-    return { ok: true as const, payload: res.data };
+    return {
+      ok: false as const,
+      error: "Extension phản hồi quá chậm. Hãy thử lại.",
+    };
   } catch (e) {
     return {
       ok: false as const,
@@ -237,7 +400,7 @@ export async function openExamPageInExtension() {
     const res = await sendToExtension<{ tabId: number; reused: boolean }>(
       "MYDTU_OPEN_EXAM_PAGE",
       null,
-      30000,
+      OPEN_PAGE_TIMEOUT_MS,
       "Open exam page timeout.",
     );
 
@@ -297,7 +460,7 @@ export async function openTranscriptPageInExtension() {
     const res = await sendToExtension<{ tabId: number; reused: boolean }>(
       "MYDTU_OPEN_TRANSCRIPT_PAGE",
       null,
-      30000,
+      OPEN_PAGE_TIMEOUT_MS,
       "Open transcript page timeout.",
     );
 
@@ -305,6 +468,67 @@ export async function openTranscriptPageInExtension() {
       return {
         ok: false as const,
         error: res.error || "Cannot open transcript page.",
+      };
+    }
+
+    return { ok: true as const, payload: res.data ?? null };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}
+
+export async function requestTranscriptDetailSync(input?: {
+  targetSemesters?: string[];
+}) {
+  try {
+    const res = await sendToExtension<TranscriptDetailSyncPayload>(
+      "MYDTU_SYNC_TRANSCRIPT_DETAIL",
+      {
+        targetSemesters: input?.targetSemesters ?? [],
+      },
+      TRANSCRIPT_DETAIL_TIMEOUT_MS,
+      "Extension background did not respond in time.",
+    );
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: res.error || "Extension transcript detail sync failed.",
+      };
+    }
+
+    if (!res.data) {
+      return {
+        ok: false as const,
+        error: "Extension returned empty transcript detail data.",
+      };
+    }
+
+    return { ok: true as const, payload: res.data };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: String((e as Error)?.message || e),
+    };
+  }
+}
+
+export async function openTranscriptDetailPageInExtension() {
+  try {
+    const res = await sendToExtension<{ tabId: number; reused: boolean }>(
+      "MYDTU_OPEN_TRANSCRIPT_DETAIL_PAGE",
+      null,
+      OPEN_PAGE_TIMEOUT_MS,
+      "Open transcript detail page timeout.",
+    );
+
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: res.error || "Cannot open transcript detail page.",
       };
     }
 

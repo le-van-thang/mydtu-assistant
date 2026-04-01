@@ -83,34 +83,124 @@ type AppToast = {
 };
 
 const BTN_NEUTRAL =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#cfd8e6] bg-white px-4 text-sm font-semibold text-[#1e293b] shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:-translate-y-[1px] hover:border-[#b8c4d8] hover:bg-[#f8fbff]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#cfd8e6] bg-white px-4 text-sm font-bold text-[#0f172a] shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:-translate-y-[1px] hover:border-[#b8c4d8] hover:bg-[#f8fbff]";
 
 const BTN_SOFT_INFO =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#bfd3ff] bg-[#edf4ff] px-4 text-sm font-semibold text-[#2563eb] shadow-[0_10px_24px_rgba(37,99,235,0.10)] transition hover:-translate-y-[1px] hover:bg-[#e3efff]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#bfd3ff] bg-[#edf4ff] px-4 text-sm font-bold text-[#1d4ed8] shadow-[0_10px_24px_rgba(37,99,235,0.10)] transition hover:-translate-y-[1px] hover:bg-[#e3efff]";
 
 const BTN_SOFT_SUCCESS =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#b7ead9] bg-[#ecfdf5] px-4 text-sm font-semibold text-[#059669] shadow-[0_10px_24px_rgba(5,150,105,0.10)] transition hover:-translate-y-[1px] hover:bg-[#dff8ee]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#b7ead9] bg-[#ecfdf5] px-4 text-sm font-bold text-[#047857] shadow-[0_10px_24px_rgba(5,150,105,0.10)] transition hover:-translate-y-[1px] hover:bg-[#dff8ee]";
 
 const BTN_SOFT_WARNING =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#f5d7a6] bg-[#fff7e8] px-4 text-sm font-semibold text-[#d97706] shadow-[0_10px_24px_rgba(217,119,6,0.10)] transition hover:-translate-y-[1px] hover:bg-[#fff1d6]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#f5d7a6] bg-[#fff7e8] px-4 text-sm font-bold text-[#b45309] shadow-[0_10px_24px_rgba(217,119,6,0.10)] transition hover:-translate-y-[1px] hover:bg-[#fff1d6]";
 
 const BTN_PRIMARY =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#5b95ff_0%,#2563eb_100%)] px-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(37,99,235,0.24)] transition hover:-translate-y-[1px] hover:brightness-105";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#5b95ff_0%,#2563eb_100%)] px-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.24)] transition hover:-translate-y-[1px] hover:brightness-105";
 
 const BTN_PRIMARY_ACTIVE =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#6ea3ff_0%,#3b82f6_100%)] px-4 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(59,130,246,0.28)] transition";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#6ea3ff_0%,#3b82f6_100%)] px-4 text-sm font-bold text-white shadow-[0_16px_34px_rgba(59,130,246,0.28)] transition";
 
 const BTN_DANGER =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#ef4444_0%,#dc2626_100%)] px-4 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(239,68,68,0.22)] transition hover:-translate-y-[1px] hover:brightness-105";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#ef4444_0%,#dc2626_100%)] px-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(239,68,68,0.22)] transition hover:-translate-y-[1px] hover:brightness-105";
 
 const BTN_DETAIL_LINK =
-  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border-main)] bg-[rgba(255,255,255,0.035)] px-4 text-sm font-semibold text-[var(--text-main)] shadow-[0_8px_20px_rgba(2,8,23,0.16)] transition hover:-translate-y-[1px] hover:border-[var(--border-strong)] hover:bg-[rgba(255,255,255,0.06)]";
+  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border-main)] bg-[rgba(255,255,255,0.035)] px-4 text-sm font-bold text-[var(--text-main)] shadow-[0_8px_20px_rgba(2,8,23,0.16)] transition hover:-translate-y-[1px] hover:border-[var(--border-strong)] hover:bg-[rgba(255,255,255,0.06)]";
 
 const BTN_DOWNLOAD_LINK =
-  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 text-sm font-semibold text-[var(--accent)] shadow-[0_8px_20px_rgba(59,130,246,0.14)] transition hover:-translate-y-[1px] hover:bg-[var(--accent)]/14";
+  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 text-sm font-bold text-[var(--accent)] shadow-[0_8px_20px_rgba(59,130,246,0.14)] transition hover:-translate-y-[1px] hover:bg-[var(--accent)]/14";
 
 const EXAM_NOTIFY_ENABLED_KEY = "exam-notify-enabled";
+function ActionHint({ title, items }: { title?: string; items: string[] }) {
+  return (
+    <details className="group rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+        <div className="min-w-0">
+          <div className="text-[12px] font-bold uppercase tracking-[0.04em] text-[var(--text-soft)]">
+            {title || "Quick guide"}
+          </div>
+          <div className="mt-1 text-xs text-[var(--text-muted)]">
+            {items.length} {items.length === 1 ? "item" : "items"}
+          </div>
+        </div>
 
+        <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] text-[var(--text-muted)] transition group-open:rotate-180">
+          <ChevronDownIcon />
+        </div>
+      </summary>
+
+      <div className="border-t border-[var(--border-main)] px-4 py-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {items.map((item, index) => (
+            <div
+              key={`${title || "hint"}-${index}`}
+              className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] px-4 py-3 text-[13px] leading-5 text-[var(--text-muted)] shadow-sm"
+            >
+              <div className="mb-2 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[var(--accent)]/12 px-2 text-[11px] font-bold text-[var(--accent)]">
+                {String(index + 1).padStart(2, "0")}
+              </div>
+              <div>{item}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function SectionTitle({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div>
+      <div className="text-[1.05rem] font-bold text-[var(--text-main)]">
+        {title}
+      </div>
+      {subtitle ? (
+        <div className="mt-1 text-sm text-[var(--text-muted)]">{subtitle}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function groupSessionRecordsByClass(records: ParsedExamRecord[]) {
+  const map = new Map<
+    string,
+    {
+      classCourse: string;
+      classStudentSample: string | null;
+      count: number;
+      records: ParsedExamRecord[];
+    }
+  >();
+
+  for (const record of records) {
+    const classCourse = record.classCourse || "—";
+    const key = classCourse;
+    if (!map.has(key)) {
+      map.set(key, {
+        classCourse,
+        classStudentSample: record.classStudent || null,
+        count: 0,
+        records: [],
+      });
+    }
+
+    const item = map.get(key)!;
+    item.count += 1;
+    if (!item.classStudentSample && record.classStudent) {
+      item.classStudentSample = record.classStudent;
+    }
+    item.records.push(record);
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => b.count - a.count || a.classCourse.localeCompare(b.classCourse),
+  );
+}
 function normalizeText(value: unknown) {
   return String(value ?? "")
     .normalize("NFD")
@@ -874,7 +964,7 @@ function DisplayModeBar({
           </div>
         </div>
 
-       <div className="flex flex-nowrap items-center gap-3 overflow-x-auto pb-1 xl:justify-end">
+        <div className="flex flex-nowrap items-center gap-3 overflow-x-auto pb-1 xl:justify-end">
           <button
             type="button"
             onClick={() => setOnlyUpcoming((v) => !v)}
@@ -1041,6 +1131,7 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
   const [activeSession, setActiveSession] = useState<ExamSessionSummary | null>(
     null,
   );
+  const [activeSessionSearch, setActiveSessionSearch] = useState("");
   const [stickyFilters, setStickyFilters] = useState(false);
   const [toasts, setToasts] = useState<AppToast[]>([]);
 
@@ -1627,11 +1718,7 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
         setError(msg);
         setBannerTone("error");
         setBannerText(msg);
-        pushToast(
-          "error",
-          isVi ? "Đồng bộ thất bại" : "Sync failed",
-          msg,
-        );
+        pushToast("error", isVi ? "Đồng bộ thất bại" : "Sync failed", msg);
         return;
       }
 
@@ -1650,11 +1737,7 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
         setError(friendly);
         setBannerTone("error");
         setBannerText(friendly);
-        pushToast(
-          "error",
-          isVi ? "Đồng bộ thất bại" : "Sync failed",
-          friendly,
-        );
+        pushToast("error", isVi ? "Đồng bộ thất bại" : "Sync failed", friendly);
         return;
       }
 
@@ -1739,11 +1822,7 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
       setError(friendly);
       setBannerTone("error");
       setBannerText(friendly);
-      pushToast(
-        "error",
-        isVi ? "Đồng bộ thất bại" : "Sync failed",
-        friendly,
-      );
+      pushToast("error", isVi ? "Đồng bộ thất bại" : "Sync failed", friendly);
     } finally {
       setSyncing(false);
     }
@@ -1913,6 +1992,40 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
     ? "Cách dùng nhanh: bấm “Mở cổng đào tạo” trước để extension đứng đúng trang lịch thi, sau đó quay lại bấm “Đồng bộ”. Dữ liệu sẽ được tái dựng thành giao diện web dễ đọc hơn Excel gốc."
     : "Quick usage: click “Open portal” first, then come back and click “Sync”. Data will be rebuilt into a cleaner web view.";
 
+  useEffect(() => {
+    setActiveSessionSearch("");
+  }, [activeSession]);
+
+  const activeSessionTokens = useMemo(
+    () => tokenizeQuery(activeSessionSearch),
+    [activeSessionSearch],
+  );
+
+  const activeSessionFilteredRecords = useMemo(() => {
+    if (!activeSession) return [];
+    if (!activeSessionTokens.length) return activeSession.records;
+
+    return activeSession.records.filter((record) => {
+      const index = buildSearchIndex(record);
+      return activeSessionTokens.some((token) => {
+        const looseMatch = index.looseHaystacks.some((value) =>
+          value.includes(token.loose),
+        );
+        const compactMatch = token.compact
+          ? index.compactHaystacks.some((value) =>
+              value.includes(token.compact),
+            )
+          : false;
+        return looseMatch || compactMatch;
+      });
+    });
+  }, [activeSession, activeSessionTokens]);
+
+  const activeSessionClassGroups = useMemo(
+    () => groupSessionRecordsByClass(activeSessionFilteredRecords),
+    [activeSessionFilteredRecords],
+  );
+
   const detailHintText = isVi
     ? "Nút mới “Mở hồ sơ lịch” sẽ mở form web đẹp cho toàn bộ file lịch tương ứng, thay vì xuất Excel thô khó đọc."
     : "The new “Open roster view” button opens a clean in-app view for the whole workbook instead of a raw spreadsheet export.";
@@ -1927,68 +2040,129 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
             <div className="max-w-3xl">
               <div className="text-[1.9rem] font-bold tracking-tight">
                 {t("exams.page.title")}
-              </div>  
+              </div>
               <div className="mt-1.5 text-sm app-text-muted">
                 {t("exams.page.subtitle")}
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleOpenPdaotao}
-                className={BTN_NEUTRAL}
-              >
-                {t("exams.actions.openPortal")}
-              </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenPdaotao}
+                  className={BTN_NEUTRAL}
+                  title={
+                    isVi
+                      ? "Mở đúng trang lịch thi của cổng đào tạo để extension chuẩn bị đồng bộ"
+                      : "Open the exam portal page so the extension can prepare syncing"
+                  }
+                  aria-label={isVi ? "Mở cổng đào tạo" : "Open portal"}
+                >
+                  {t("exams.actions.openPortal")}
+                </button>
 
-              <button
-                type="button"
-                onClick={handleEnableNotify}
-                className={
-                  notifyPermission === "denied"
-                    ? BTN_SOFT_WARNING
-                    : notificationsEnabled
-                      ? BTN_SOFT_SUCCESS
-                      : BTN_SOFT_INFO
-                }
-              >
-                {notifyPermission === "denied"
-                  ? isVi
-                    ? "Thông báo bị chặn"
-                    : "Notifications blocked"
-                  : notificationsEnabled
+                <button
+                  type="button"
+                  onClick={handleEnableNotify}
+                  className={
+                    notifyPermission === "denied"
+                      ? BTN_SOFT_WARNING
+                      : notificationsEnabled
+                        ? BTN_SOFT_SUCCESS
+                        : BTN_SOFT_INFO
+                  }
+                  title={
+                    notifyPermission === "denied"
+                      ? isVi
+                        ? "Trình duyệt đang chặn thông báo"
+                        : "Browser notifications are blocked"
+                      : notificationsEnabled
+                        ? isVi
+                          ? "Tắt thông báo lịch thi trong ứng dụng"
+                          : "Disable exam notifications"
+                        : isVi
+                          ? "Bật thông báo khi có lịch thi mới"
+                          : "Enable notifications for new exam schedules"
+                  }
+                  aria-label={
+                    isVi
+                      ? "Bật hoặc tắt thông báo lịch thi"
+                      : "Toggle exam notifications"
+                  }
+                >
+                  {notifyPermission === "denied"
                     ? isVi
-                      ? "Tắt thông báo"
-                      : "Turn off notifications"
+                      ? "Thông báo bị chặn"
+                      : "Notifications blocked"
+                    : notificationsEnabled
+                      ? isVi
+                        ? "Tắt thông báo"
+                        : "Turn off notifications"
+                      : isVi
+                        ? "Bật thông báo"
+                        : "Turn on notifications"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportExcel}
+                  disabled={exportingExcel}
+                  className={`${BTN_SOFT_SUCCESS} disabled:opacity-60`}
+                  title={
+                    isVi
+                      ? "Xuất toàn bộ dữ liệu đang lọc thành file Excel"
+                      : "Export the currently filtered data to Excel"
+                  }
+                  aria-label={
+                    isVi ? "Xuất báo cáo Excel" : "Export Excel report"
+                  }
+                >
+                  {exportingExcel
+                    ? isVi
+                      ? "Đang xuất..."
+                      : "Exporting..."
                     : isVi
-                      ? "Bật thông báo"
-                      : "Turn on notifications"}
-              </button>
+                      ? "Xuất báo cáo"
+                      : "Export report"}
+                </button>
 
-              <button
-                type="button"
-                onClick={handleExportExcel}
-                disabled={exportingExcel}
-                className={`${BTN_SOFT_SUCCESS} disabled:opacity-60`}
-              >
-                {exportingExcel
-                  ? isVi
-                    ? "Đang xuất..."
-                    : "Exporting..."
-                  : isVi
-                    ? "Xuất báo cáo"
-                    : "Export report"}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className={`${syncing ? BTN_DANGER : BTN_PRIMARY} disabled:opacity-60`}
+                  title={
+                    isVi
+                      ? "Lấy lại dữ liệu lịch thi mới nhất từ extension"
+                      : "Sync the latest exam schedules from the extension"
+                  }
+                  aria-label={isVi ? "Đồng bộ lịch thi" : "Sync exams"}
+                >
+                  {syncing
+                    ? t("exams.actions.syncing")
+                    : t("exams.actions.sync")}
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={handleSync}
-                disabled={syncing}
-                className={`${syncing ? BTN_DANGER : BTN_PRIMARY} disabled:opacity-60`}
-              >
-                {syncing ? t("exams.actions.syncing") : t("exams.actions.sync")}
-              </button>
+              <ActionHint
+                title={isVi ? "Giải thích nhanh các nút" : "Quick action guide"}
+                items={
+                  isVi
+                    ? [
+                        "Mở cổng đào tạo: mở đúng trang nguồn để extension đứng sẵn ở chỗ cần lấy dữ liệu.",
+                        "Đồng bộ lịch thi: lấy dữ liệu mới nhất từ cổng đào tạo và cập nhật lại hệ thống.",
+                        "Bật thông báo: báo khi có lịch thi mới sau những lần đồng bộ tiếp theo.",
+                        "Xuất báo cáo: tải file Excel từ chính dữ liệu bạn đang lọc trên màn hình.",
+                      ]
+                    : [
+                        "Open portal: open the source exam page so the extension is ready.",
+                        "Sync exams: fetch the latest schedules from the portal and update the app.",
+                        "Turn on notifications: alert you when new exam schedules appear after later syncs.",
+                        "Export report: download an Excel file from the data currently filtered on screen.",
+                      ]
+                }
+              />
             </div>
           </div>
 
@@ -2091,7 +2265,9 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
 
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex h-11 items-center rounded-full border border-[#bfd3ff] bg-[#edf4ff] px-4 text-sm font-bold text-[#2563eb] shadow-[0_8px_18px_rgba(37,99,235,0.08)]">
-                  {isVi ? `${stats.visible} kết quả` : `${stats.visible} results`}
+                  {isVi
+                    ? `${stats.visible} kết quả`
+                    : `${stats.visible} results`}
                 </span>
 
                 {stickyFilters ? (
@@ -2493,7 +2669,10 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                 {monthCells.map((day) => {
                   const key = `${day.getFullYear()}-${String(
                     day.getMonth() + 1,
-                  ).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                  ).padStart(
+                    2,
+                    "0",
+                  )}-${String(day.getDate()).padStart(2, "0")}`;
                   const count = monthCountMap.get(key) || 0;
                   const inMonth = day.getMonth() === calendarMonth.getMonth();
                   const active = dateFilter === key;
@@ -2513,7 +2692,9 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                         !inMonth ? "opacity-40" : "",
                       ].join(" ")}
                     >
-                      <div className="text-sm font-semibold">{day.getDate()}</div>
+                      <div className="text-sm font-semibold">
+                        {day.getDate()}
+                      </div>
                       <div className="mt-1 text-[10px] app-text-muted">
                         {count > 0
                           ? isVi
@@ -2598,6 +2779,14 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                             type="button"
                             onClick={() => setActiveSession(session)}
                             className={`${BTN_NEUTRAL} shrink-0 whitespace-nowrap`}
+                            title={
+                              isVi
+                                ? "Mở danh sách sinh viên của đúng ca thi này"
+                                : "Open the student list for this exact exam session"
+                            }
+                            aria-label={
+                              isVi ? "Xem ca thi" : "View exam session"
+                            }
                           >
                             {isVi ? "Xem ca thi" : "View session"}
                           </button>
@@ -2605,10 +2794,32 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                           <Link
                             href={buildNoticeReportHref(session.detailUrl)}
                             className={`${BTN_PRIMARY} shrink-0 whitespace-nowrap`}
+                            title={
+                              isVi
+                                ? "Mở toàn bộ hồ sơ lịch của file nguồn dưới dạng web gọn hơn"
+                                : "Open the full roster view of the source file in a cleaner web layout"
+                            }
+                            aria-label={
+                              isVi ? "Mở hồ sơ lịch" : "Open roster view"
+                            }
                           >
                             {isVi ? "Mở hồ sơ lịch" : "Open roster view"}
                           </Link>
                         </div>
+
+                        <ActionHint
+                          items={
+                            isVi
+                              ? [
+                                  "Xem ca thi: chỉ xem riêng ca đang chọn, phù hợp khi cần tra nhanh sinh viên.",
+                                  "Mở hồ sơ lịch: mở cả file nguồn ở dạng web để xem đầy đủ hơn PDF hoặc Excel gốc.",
+                                ]
+                              : [
+                                  "View session: open only the selected session for quick student lookup.",
+                                  "Open roster view: open the full source workbook in a cleaner web form.",
+                                ]
+                          }
+                        />
                       </div>
                     </div>
                   ))}
@@ -2751,7 +2962,8 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                       : ""}
                                   </div>
                                   <div className="mt-1 max-w-[360px] text-xs leading-5 app-text-muted">
-                                    {sanitizeExamMeta(session.examMetaRaw) || "—"}
+                                    {sanitizeExamMeta(session.examMetaRaw) ||
+                                      "—"}
                                   </div>
                                 </td>
 
@@ -2768,7 +2980,9 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                       {session.classCourseCount || 0}
                                     </div>
                                     <div>
-                                      {isVi ? "Lớp sinh hoạt" : "Student classes"}
+                                      {isVi
+                                        ? "Lớp sinh hoạt"
+                                        : "Student classes"}
                                       : {session.classStudentCount || 0}
                                     </div>
                                   </div>
@@ -2791,6 +3005,14 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                       type="button"
                                       onClick={() => setActiveSession(session)}
                                       className={`${BTN_NEUTRAL} shrink-0 whitespace-nowrap`}
+                                      title={
+                                        isVi
+                                          ? "Mở nhanh ca thi này để xem danh sách sinh viên"
+                                          : "Quickly open this session to inspect the student list"
+                                      }
+                                      aria-label={
+                                        isVi ? "Xem ca thi" : "View session"
+                                      }
                                     >
                                       {isVi ? "Xem ca thi" : "View session"}
                                     </button>
@@ -2800,6 +3022,16 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                         session.detailUrl,
                                       )}
                                       className={`${BTN_PRIMARY} shrink-0 whitespace-nowrap`}
+                                      title={
+                                        isVi
+                                          ? "Mở toàn bộ hồ sơ lịch của file nguồn tương ứng"
+                                          : "Open the full roster view for the related source file"
+                                      }
+                                      aria-label={
+                                        isVi
+                                          ? "Mở hồ sơ lịch"
+                                          : "Open roster view"
+                                      }
                                     >
                                       {isVi
                                         ? "Mở hồ sơ lịch"
@@ -2807,13 +3039,12 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                     </Link>
                                   </div>
 
-                                  <div className="mt-2 max-w-[360px] text-[11px] leading-5 app-text-muted">
+                                  <div className="mt-2 max-w-[360px] text-[12px] leading-5 text-[var(--text-muted)]">
                                     {isVi
-                                      ? "Hồ sơ lịch là trang form web đầy đủ của cả file nguồn, dễ xem hơn Excel gốc."
-                                      : "Roster view opens the full in-app form of the source workbook."}
+                                      ? "Xem ca thi để tra nhanh theo 1 phiên. Mở hồ sơ lịch để xem toàn bộ file nguồn theo bố cục web rõ ràng hơn."
+                                      : "Use View session for one session only. Use Open roster view for the full source workbook in a cleaner layout."}
                                   </div>
                                 </td>
-
                                 <td className="px-4 py-3">
                                   <div className="text-xs app-text-muted">
                                     {session.publishedAtRaw ||
@@ -2832,6 +3063,16 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                       target="_blank"
                                       rel="noreferrer"
                                       className={`${BTN_DETAIL_LINK} shrink-0 whitespace-nowrap`}
+                                      title={
+                                        isVi
+                                          ? "Mở trang chi tiết gốc của thông báo trên cổng đào tạo"
+                                          : "Open the original notice detail page on the training portal"
+                                      }
+                                      aria-label={
+                                        isVi
+                                          ? "Mở nguồn chi tiết"
+                                          : "Open source detail"
+                                      }
                                     >
                                       {t("exams.actions.openDetail")}
                                     </a>
@@ -2842,12 +3083,28 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                                         target="_blank"
                                         rel="noreferrer"
                                         className={`${BTN_DOWNLOAD_LINK} shrink-0 whitespace-nowrap`}
+                                        title={
+                                          isVi
+                                            ? "Tải file PDF hoặc Excel gốc từ trường"
+                                            : "Download the original PDF or Excel file from the school"
+                                        }
+                                        aria-label={
+                                          isVi
+                                            ? "Tải file lịch thi"
+                                            : "Download exam file"
+                                        }
                                       >
                                         {isVi
                                           ? "Tải file lịch thi"
                                           : "Download exam file"}
                                       </a>
                                     ) : null}
+                                  </div>
+
+                                  <div className="mt-2 max-w-[360px] text-[12px] leading-5 text-[var(--text-muted)]">
+                                    {isVi
+                                      ? "Mở nguồn chi tiết để kiểm tra thông báo gốc. Tải file lịch thi để mở đúng file PDF/Excel trường cung cấp."
+                                      : "Open source detail to verify the original notice. Download exam file to open the original PDF/Excel from the school."}
                                   </div>
                                 </td>
                               </tr>
@@ -2879,7 +3136,7 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-3xl border border-[var(--border-main)] bg-[var(--bg-card)] shadow-2xl">
               <div className="flex items-start justify-between gap-4 border-b border-[var(--border-main)] px-5 py-4">
-                <div>
+                <div className="min-w-0">
                   <div className="text-lg font-bold">
                     {activeSession.courseCode ||
                       t("exams.labels.unknownCourseCode")}
@@ -2902,50 +3159,51 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                   type="button"
                   onClick={() => setActiveSession(null)}
                   className={BTN_NEUTRAL}
+                  title={isVi ? "Đóng cửa sổ xem nhanh" : "Close quick preview"}
                 >
                   {t("common.close")}
                 </button>
               </div>
 
               <div className="max-h-[calc(90vh-88px)] overflow-auto px-5 py-4">
-                <div className="grid gap-4 lg:grid-cols-4">
-                  <div className="rounded-xl border border-[var(--border-main)] p-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 px-4 py-3">
                     <div className="text-[11px] uppercase app-text-muted">
                       {isVi ? "Loại lịch" : "Plan type"}
                     </div>
-                    <div className="mt-2 font-semibold">
+                    <div className="mt-1.5 font-bold">
                       {activeSession.planType === "official"
                         ? t("exams.filters.official")
                         : t("exams.filters.tentative")}
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[var(--border-main)] p-4">
+                  <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 px-4 py-3">
                     <div className="text-[11px] uppercase app-text-muted">
                       {isVi ? "Sinh viên" : "Students"}
                     </div>
-                    <div className="mt-2 font-semibold">
+                    <div className="mt-1.5 font-bold">
                       {activeSession.studentCount}
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[var(--border-main)] p-4">
+                  <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 px-4 py-3">
                     <div className="text-[11px] uppercase app-text-muted">
                       {isVi ? "Lớp môn học" : "Course classes"}
                     </div>
-                    <div className="mt-2 font-semibold">
+                    <div className="mt-1.5 font-bold">
                       {activeSession.classCourseCount}
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[var(--border-main)] p-4">
+                  <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 px-4 py-3">
                     <div className="text-[11px] uppercase app-text-muted">
                       {isVi ? "Trạng thái" : "Status"}
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-1.5">
                       <span
                         className={[
-                          "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                          "inline-flex rounded-full px-3 py-1 text-xs font-bold",
                           getStatusTone(activeSession.examDate),
                         ].join(" ")}
                       >
@@ -2955,11 +3213,17 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-[var(--border-main)] bg-[var(--bg-soft)] p-4">
-                  <div className="text-sm font-semibold">
-                    {isVi ? "Thông tin phiên thi" : "Session details"}
-                  </div>
-                  <div className="mt-2 text-sm app-text-muted">
+                <div className="mt-4 rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 p-4">
+                  <SectionTitle
+                    title={isVi ? "Thông tin phiên thi" : "Session details"}
+                    subtitle={
+                      isVi
+                        ? "Bản xem nhanh của đúng 1 ca thi, chia rõ theo lớp để đỡ rối."
+                        : "Quick preview of one exam session with clearer class separation."
+                    }
+                  />
+
+                  <div className="mt-3 text-sm app-text-muted">
                     {sanitizeExamMeta(activeSession.examMetaRaw) || "—"}
                   </div>
 
@@ -2967,6 +3231,11 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                     <Link
                       href={buildNoticeReportHref(activeSession.detailUrl)}
                       className={BTN_PRIMARY}
+                      title={
+                        isVi
+                          ? "Mở toàn bộ hồ sơ lịch của file nguồn này"
+                          : "Open the full roster view of this source file"
+                      }
                     >
                       {isVi ? "Mở hồ sơ lịch đầy đủ" : "Open full roster view"}
                     </Link>
@@ -2976,6 +3245,11 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                       target="_blank"
                       rel="noreferrer"
                       className={BTN_DETAIL_LINK}
+                      title={
+                        isVi
+                          ? "Mở trang chi tiết gốc trên cổng đào tạo"
+                          : "Open the original detail page on the portal"
+                      }
                     >
                       {t("exams.actions.openDetail")}
                     </a>
@@ -2986,73 +3260,192 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                         target="_blank"
                         rel="noreferrer"
                         className={BTN_DOWNLOAD_LINK}
+                        title={
+                          isVi
+                            ? "Tải file lịch thi gốc"
+                            : "Download the original exam file"
+                        }
                       >
                         {isVi ? "Tải file lịch thi" : "Download exam file"}
                       </a>
                     ) : null}
                   </div>
+
+                  <div className="mt-3 text-[12px] leading-5 text-[var(--text-muted)]">
+                    {isVi
+                      ? "Xem ca thi giờ ưu tiên tra cứu nhanh: có nhóm theo lớp, ô tìm kiếm nội bộ và danh sách sinh viên lọc ngay trong modal."
+                      : "View session is now optimized for quick lookup with class grouping, in-modal search, and a filtered student list."}
+                  </div>
                 </div>
 
-                <div className="mt-5">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-base font-semibold">
-                      {isVi
-                        ? `Danh sách sinh viên (${activeSession.records.length})`
-                        : `Students (${activeSession.records.length})`}
-                    </div>
-                    <div className="text-xs app-text-muted">
-                      {isVi
-                        ? "Bản xem nhanh theo 1 ca thi. Muốn xem đủ cả file thì bấm nút hồ sơ lịch."
-                        : "Quick per-session preview. Use roster view for the full workbook."}
+                <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <SectionTitle
+                          title={
+                            isVi
+                              ? `Nhóm lớp môn học (${activeSessionClassGroups.length})`
+                              : `Course class groups (${activeSessionClassGroups.length})`
+                          }
+                          subtitle={
+                            isVi
+                              ? "Nhìn nhanh lớp nào đông, bấm vào từng nhóm để xem sinh viên."
+                              : "See which classes are dense and expand each group when needed."
+                          }
+                        />
+                        <div className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                          {isVi
+                            ? `${activeSessionFilteredRecords.length}/${activeSession.records.length} sinh viên`
+                            : `${activeSessionFilteredRecords.length}/${activeSession.records.length} students`}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {activeSessionClassGroups.map((group) => (
+                          <details
+                            key={group.classCourse}
+                            className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55"
+                          >
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold">
+                                  {group.classCourse}
+                                </div>
+                                <div className="mt-1 text-xs app-text-muted">
+                                  {group.classStudentSample || "—"}
+                                </div>
+                              </div>
+
+                              <div className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                                {group.count}
+                              </div>
+                            </summary>
+
+                            <div className="border-t border-[var(--border-main)] px-4 py-3">
+                              <div className="space-y-2">
+                                {group.records.map((record) => (
+                                  <div
+                                    key={record.id}
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                                  >
+                                    <div className="min-w-0">
+                                      <div className="font-medium">
+                                        {record.studentName || "—"}
+                                      </div>
+                                      <div className="mt-1 text-xs app-text-muted">
+                                        {record.studentId || "—"}
+                                        {record.classStudent
+                                          ? ` • ${record.classStudent}`
+                                          : ""}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs app-text-muted">
+                                      {record.birthDate || "—"}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </details>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto rounded-2xl border border-[var(--border-main)]">
-                    <table className="min-w-[980px] w-full text-sm">
-                      <thead>
-                        <tr className="bg-[var(--bg-soft)] text-left">
-                          <th className="px-4 py-3 font-semibold">
-                            {isVi ? "MSSV" : "Student ID"}
-                          </th>
-                          <th className="px-4 py-3 font-semibold">
-                            {isVi ? "Họ tên" : "Name"}
-                          </th>
-                          <th className="px-4 py-3 font-semibold">
-                            {isVi ? "Lớp môn học" : "Course class"}
-                          </th>
-                          <th className="px-4 py-3 font-semibold">
-                            {isVi ? "Lớp sinh hoạt" : "Student class"}
-                          </th>
-                          <th className="px-4 py-3 font-semibold">
-                            {isVi ? "Ngày sinh" : "Birth date"}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeSession.records.map((record) => (
-                          <tr
-                            key={record.id}
-                            className="border-t border-[var(--border-main)]/70"
-                          >
-                            <td className="px-4 py-3">
-                              {record.studentId || "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              {record.studentName || "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              {record.classCourse || "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              {record.classStudent || "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              {record.birthDate || "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4">
+                      <SectionTitle
+                        title={
+                          isVi ? "Tìm trong ca thi" : "Search this session"
+                        }
+                        subtitle={
+                          isVi
+                            ? "Lọc theo MSSV, họ tên, lớp môn học, lớp sinh hoạt."
+                            : "Filter by student ID, name, course class, or student class."
+                        }
+                      />
+
+                      <div className="mt-3">
+                        <input
+                          value={activeSessionSearch}
+                          onChange={(e) =>
+                            setActiveSessionSearch(e.target.value)
+                          }
+                          className="app-input h-12 text-sm"
+                          placeholder={
+                            isVi
+                              ? "Tìm MSSV, họ tên, lớp..."
+                              : "Search student ID, name, class..."
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <SectionTitle
+                          title={
+                            isVi
+                              ? `Danh sách sinh viên (${activeSessionFilteredRecords.length})`
+                              : `Students (${activeSessionFilteredRecords.length})`
+                          }
+                          subtitle={
+                            isVi
+                              ? "Bảng đầy đủ sau khi áp dụng tìm kiếm trong modal."
+                              : "Full table after applying the in-modal search."
+                          }
+                        />
+                      </div>
+
+                      <div className="overflow-x-auto rounded-2xl border border-[var(--border-main)]">
+                        <table className="min-w-[980px] w-full text-sm">
+                          <thead>
+                            <tr className="bg-[var(--bg-soft)] text-left">
+                              <th className="px-4 py-3 font-bold">
+                                {isVi ? "MSSV" : "Student ID"}
+                              </th>
+                              <th className="px-4 py-3 font-bold">
+                                {isVi ? "Họ tên" : "Name"}
+                              </th>
+                              <th className="px-4 py-3 font-bold">
+                                {isVi ? "Lớp môn học" : "Course class"}
+                              </th>
+                              <th className="px-4 py-3 font-bold">
+                                {isVi ? "Lớp sinh hoạt" : "Student class"}
+                              </th>
+                              <th className="px-4 py-3 font-bold">
+                                {isVi ? "Ngày sinh" : "Birth date"}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {activeSessionFilteredRecords.map((record) => (
+                              <tr
+                                key={record.id}
+                                className="border-t border-[var(--border-main)]/70"
+                              >
+                                <td className="px-4 py-3">
+                                  {record.studentId || "—"}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {record.studentName || "—"}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {record.classCourse || "—"}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {record.classStudent || "—"}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {record.birthDate || "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1,6 +1,16 @@
 // path: apps/web/src/app/api/transcript/route.ts
 import { cookies } from "next/headers";
 
+function getTokenFromCookieStore(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+) {
+  return (
+    cookieStore.get("token")?.value ||
+    cookieStore.get("accessToken")?.value ||
+    null
+  );
+}
+
 export async function GET(req: Request) {
   const baseUrl = process.env.API_BASE_URL;
 
@@ -18,13 +28,14 @@ export async function GET(req: Request) {
   }
 
   const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+  const token = getTokenFromCookieStore(cookieStore);
 
   if (!token) {
     return new Response(
       JSON.stringify({
         ok: false,
-        message: "Unauthorized: missing token cookie",
+        message:
+          "Unauthorized: missing auth cookie. Hãy đăng nhập ứng dụng MYDTU Assistant trước.",
       }),
       {
         status: 401,

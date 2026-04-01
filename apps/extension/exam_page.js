@@ -1,12 +1,13 @@
 // path: apps/extension/exam_page.js
-
 (() => {
   const EXAM_LIST_BASE = "https://pdaotao.duytan.edu.vn/EXAM_LIST/";
   const ADAPTER_KEY = "pdaotao_exam_v1";
-  const ADAPTER_VERSION = "1.0.0";
+  const ADAPTER_VERSION = "1.1.0";
 
   function normalizeSpace(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function toAbsoluteUrl(url) {
@@ -71,20 +72,53 @@
 
   function stripPublishedAtTail(text) {
     return normalizeSpace(
-      text.replace(/\(\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\)\s*$/, "")
+      text.replace(/\(\d{2}:\d{2}\s+\d{2}\/\d{2}\/\d{4}\)\s*$/, ""),
     );
+  }
+
+  function detectAttachmentTypeFromUrl(url) {
+    const lower = String(url || "").toLowerCase();
+
+    if (lower.endsWith(".xlsx")) {
+      return {
+        kind: "excel",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      };
+    }
+
+    if (lower.endsWith(".xls")) {
+      return {
+        kind: "excel",
+        mimeType: "application/vnd.ms-excel",
+      };
+    }
+
+    if (lower.endsWith(".pdf")) {
+      return {
+        kind: "pdf",
+        mimeType: "application/pdf",
+      };
+    }
+
+    return {
+      kind: "unknown",
+      mimeType: null,
+    };
   }
 
   function parseListDocument(doc) {
     const anchors = Array.from(
-      doc.querySelectorAll("a[href*='EXAM_LIST_Detail']")
+      doc.querySelectorAll("a[href*='EXAM_LIST_Detail']"),
     );
 
     const items = [];
+    const seen = new Set();
 
     for (const anchor of anchors) {
       const href = toAbsoluteUrl(anchor.getAttribute("href") || "");
-      if (!href) continue;
+      if (!href || seen.has(href)) continue;
+      seen.add(href);
 
       const text = normalizeSpace(anchor.textContent || "");
       const liText = normalizeSpace(anchor.closest("li")?.textContent || text);
@@ -103,32 +137,38 @@
       });
     }
 
-    const seen = new Set();
-    const deduped = [];
-
-    for (const item of items) {
-      if (seen.has(item.detailUrl)) continue;
-      seen.add(item.detailUrl);
-      deduped.push(item);
-    }
-
-    return deduped;
+    return items;
   }
 
   function parseDetailDocument(doc, detailUrl) {
     const attachmentAnchors = Array.from(doc.querySelectorAll("a[href]"))
-      .map((a) => ({
-        href: toAbsoluteUrl(a.getAttribute("href") || ""),
-        text: normalizeSpace(a.textContent || ""),
-      }))
-      .filter((a) => a.href && /\.(xlsx|xls)$/i.test(a.href));
+      .map((a) => {
+        const href = toAbsoluteUrl(a.getAttribute("href") || "");
+        const text = normalizeSpace(a.textContent || "");
+        const detected = detectAttachmentTypeFromUrl(href);
+
+        return {
+          href,
+          text,
+          kind: detected.kind,
+          mimeType: detected.mimeType,
+        };
+      })
+      .filter((a) => a.href && (a.kind === "excel" || a.kind === "pdf"));
 
     const detailText = normalizeSpace(doc.body?.textContent || "");
 
+    const preferred =
+      attachmentAnchors.find((x) => x.kind === "excel") ||
+      attachmentAnchors.find((x) => x.kind === "pdf") ||
+      null;
+
     return {
       detailUrl,
-      attachmentUrl: attachmentAnchors[0]?.href || null,
-      attachmentName: attachmentAnchors[0]?.text || null,
+      attachmentUrl: preferred?.href || null,
+      attachmentName: preferred?.text || null,
+      attachmentKind: preferred?.kind || null,
+      attachmentMimeType: preferred?.mimeType || null,
       detailText,
     };
   }
@@ -166,7 +206,7 @@
     });
   }
 
-  async function fetchAttachmentBase64(url) {
+  async function fetchAttachmentPayload(url) {
     const res = await fetch(url, {
       method: "GET",
       credentials: "include",
@@ -178,7 +218,13 @@
     }
 
     const blob = await res.blob();
-    return await blobToBase64(blob);
+    const base64 = await blobToBase64(blob);
+
+    return {
+      base64,
+      mimeType: blob.type || detectAttachmentTypeFromUrl(url).mimeType || null,
+      size: blob.size || null,
+    };
   }
 
   async function scrapeExamNotices(options = {}) {
@@ -216,17 +262,23 @@
         const detail = parseDetailDocument(detailDoc, item.detailUrl);
 
         let attachmentBase64 = null;
+        let attachmentMimeType = detail.attachmentMimeType || null;
 
         if (detail.attachmentUrl) {
           try {
-            attachmentBase64 = await fetchAttachmentBase64(detail.attachmentUrl);
+            const attachment = await fetchAttachmentPayload(
+              detail.attachmentUrl,
+            );
+            attachmentBase64 = attachment.base64;
+            attachmentMimeType = attachment.mimeType || attachmentMimeType;
           } catch (attachmentError) {
             enriched.push({
               ...item,
               ...detail,
               attachmentBase64: null,
+              attachmentMimeType,
               attachmentError: String(
-                attachmentError?.message || attachmentError
+                attachmentError?.message || attachmentError,
               ),
             });
             continue;
@@ -237,12 +289,15 @@
           ...item,
           ...detail,
           attachmentBase64,
+          attachmentMimeType,
         });
       } catch (error) {
         enriched.push({
           ...item,
           attachmentUrl: null,
           attachmentName: null,
+          attachmentKind: null,
+          attachmentMimeType: null,
           attachmentBase64: null,
           detailText: "",
           detailError: String(error?.message || error),

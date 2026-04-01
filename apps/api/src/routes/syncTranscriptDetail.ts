@@ -62,6 +62,31 @@ function numberOrNull(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function buildStrictKey(input: {
+  semester?: unknown;
+  courseCode?: unknown;
+  classCode?: unknown;
+}) {
+  return [
+    normalizeLoose(input.semester),
+    normalizeLoose(input.courseCode),
+    normalizeLoose(input.classCode),
+  ].join("||");
+}
+
+function buildClassSemesterKey(input: {
+  semester?: unknown;
+  classCode?: unknown;
+}) {
+  return [normalizeLoose(input.semester), normalizeLoose(input.classCode)].join(
+    "||",
+  );
+}
+
+function buildClassOnlyKey(input: { classCode?: unknown }) {
+  return normalizeLoose(input.classCode);
+}
+
 syncTranscriptDetailRouter.post("/", requireAuth, async (req, res) => {
   const userId = req.user!.id;
   const parsed = SyncTranscriptDetailSchema.safeParse(req.body);
@@ -157,18 +182,6 @@ syncTranscriptDetailRouter.post("/", requireAuth, async (req, res) => {
         },
       });
 
-      const transcriptKeys = Array.from(
-        new Set(
-          cleanedItems.map((item) =>
-            [
-              normalizeLoose(item.semester),
-              normalizeLoose(item.courseCode),
-              normalizeLoose(item.classCode),
-            ].join("||"),
-          ),
-        ),
-      );
-
       const transcriptCandidates = await tx.transcript.findMany({
         where: { userId },
         select: {
@@ -176,32 +189,57 @@ syncTranscriptDetailRouter.post("/", requireAuth, async (req, res) => {
           semester: true,
           courseCode: true,
           classCode: true,
+          courseName: true,
         },
       });
 
-      const transcriptMap = new Map<string, string>();
+      const strictMap = new Map<string, string>();
+      const classSemesterMap = new Map<string, string>();
+      const classOnlyMap = new Map<string, string>();
+
       for (const transcript of transcriptCandidates) {
-        const key = [
-          normalizeLoose(transcript.semester),
-          normalizeLoose(transcript.courseCode),
-          normalizeLoose(transcript.classCode),
-        ].join("||");
-        if (transcriptKeys.includes(key)) {
-          transcriptMap.set(key, transcript.id);
+        const strictKey = buildStrictKey(transcript);
+        const classSemesterKey = buildClassSemesterKey(transcript);
+        const classOnlyKey = buildClassOnlyKey(transcript);
+
+        if (!strictMap.has(strictKey)) strictMap.set(strictKey, transcript.id);
+        if (!classSemesterMap.has(classSemesterKey)) {
+          classSemesterMap.set(classSemesterKey, transcript.id);
+        }
+        if (!classOnlyMap.has(classOnlyKey)) {
+          classOnlyMap.set(classOnlyKey, transcript.id);
         }
       }
 
       let inserted = 0;
+      let skipped = 0;
+      let matchedStrict = 0;
+      let matchedSemesterClass = 0;
+      let matchedClassOnly = 0;
 
       for (const item of cleanedItems) {
-        const transcriptKey = [
-          normalizeLoose(item.semester),
-          normalizeLoose(item.courseCode),
-          normalizeLoose(item.classCode),
-        ].join("||");
+        const strictKey = buildStrictKey(item);
+        const classSemesterKey = buildClassSemesterKey(item);
+        const classOnlyKey = buildClassOnlyKey(item);
 
-        const transcriptId = transcriptMap.get(transcriptKey);
+        let transcriptId = strictMap.get(strictKey) || null;
+
+        if (transcriptId) {
+          matchedStrict++;
+        } else {
+          transcriptId = classSemesterMap.get(classSemesterKey) || null;
+          if (transcriptId) {
+            matchedSemesterClass++;
+          } else {
+            transcriptId = classOnlyMap.get(classOnlyKey) || null;
+            if (transcriptId) {
+              matchedClassOnly++;
+            }
+          }
+        }
+
         if (!transcriptId) {
+          skipped++;
           continue;
         }
 
@@ -247,10 +285,13 @@ syncTranscriptDetailRouter.post("/", requireAuth, async (req, res) => {
           recordCounts: {
             inserted,
             updated: 0,
-            skipped: cleanedItems.length - inserted,
+            skipped,
             total: cleanedItems.length,
             totalClasses: payload.meta?.totalClasses ?? null,
             totalSemesters: payload.meta?.totalSemesters ?? null,
+            matchedStrict,
+            matchedSemesterClass,
+            matchedClassOnly,
             mode: "replace_all_transcript_components",
             reusedImportSession: !!existed,
           },
@@ -263,7 +304,7 @@ syncTranscriptDetailRouter.post("/", requireAuth, async (req, res) => {
         counts: {
           inserted,
           updated: 0,
-          skipped: cleanedItems.length - inserted,
+          skipped,
         },
       };
     });

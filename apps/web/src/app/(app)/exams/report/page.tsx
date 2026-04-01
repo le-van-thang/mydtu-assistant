@@ -185,6 +185,119 @@ function groupSessionsByRoom(sessions: ExamSessionSummary[]) {
     });
 }
 
+function groupRecordsByClassCourse(records: ParsedExamRecord[]) {
+  const map = new Map<
+    string,
+    {
+      classCourse: string;
+      classStudentSample: string | null;
+      count: number;
+      records: ParsedExamRecord[];
+    }
+  >();
+
+  for (const record of records) {
+    const classCourse = record.classCourse || "—";
+    if (!map.has(classCourse)) {
+      map.set(classCourse, {
+        classCourse,
+        classStudentSample: record.classStudent || null,
+        count: 0,
+        records: [],
+      });
+    }
+
+    const item = map.get(classCourse)!;
+    item.count += 1;
+    if (!item.classStudentSample && record.classStudent) {
+      item.classStudentSample = record.classStudent;
+    }
+    item.records.push(record);
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => b.count - a.count || a.classCourse.localeCompare(b.classCourse),
+  );
+}
+
+function ClassGroupSummary({
+  records,
+  isVi,
+}: {
+  records: ParsedExamRecord[];
+  isVi: boolean;
+}) {
+  const groups = useMemo(() => groupRecordsByClassCourse(records), [records]);
+
+  if (!groups.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold">
+            {isVi ? "Nhóm lớp môn học" : "Course class groups"}
+          </div>
+          <div className="text-xs app-text-muted">
+            {isVi
+              ? "Tách nhanh theo lớp để đỡ rối khi danh sách dài."
+              : "Quick separation by course class for long rosters."}
+          </div>
+        </div>
+        <div className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+          {groups.length} {isVi ? "nhóm" : "groups"}
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {groups.map((group) => (
+          <details
+            key={group.classCourse}
+            className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)]"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <div className="truncate font-semibold">
+                  {group.classCourse}
+                </div>
+                <div className="mt-1 truncate text-xs app-text-muted">
+                  {group.classStudentSample || "—"}
+                </div>
+              </div>
+              <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                {group.count}
+              </span>
+            </summary>
+
+            <div className="border-t border-[var(--border-main)] px-4 py-3">
+              <div className="space-y-2">
+                {group.records.map((record) => (
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 px-3 py-2 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">
+                        {record.studentName || "—"}
+                      </div>
+                      <div className="mt-1 text-xs app-text-muted">
+                        {record.studentId || "—"}
+                      </div>
+                    </div>
+                    <div className="text-xs app-text-muted">
+                      {record.birthDate || "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </details>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 async function fetchCurrentUserId(): Promise<string | null> {
   try {
     const res = await fetch("/api/auth/me", {
@@ -611,8 +724,8 @@ export default function ExamReportPage() {
             </div>
             <div className="text-xs app-text-muted">
               {isVi
-                ? "Giữ nguyên cấu trúc Excel nhưng hiển thị gọn, rõ và dễ tra cứu hơn."
-                : "Keeps the original Excel structure, but cleaner and easier to scan."}
+                ? "Giữ nguyên dữ liệu gốc nhưng hiển thị lại rõ hơn, có nhóm theo lớp để cả PDF lẫn Excel đều dễ quét hơn."
+                : "Keeps the original data, but restructures it into clearer class-aware groups for both PDF and Excel sources."}
             </div>
           </div>
 
@@ -792,12 +905,37 @@ export default function ExamReportPage() {
                 </div>
               </div>
 
-              <div className="p-4 md:p-5">
-                <StudentTable
-                  records={session.records}
-                  locale={locale}
-                  isVi={isVi}
-                />
+              <div className="space-y-4 p-4 md:p-5">
+                <ClassGroupSummary records={session.records} isVi={isVi} />
+
+                <details className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)]">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {isVi
+                          ? "Mở bảng sinh viên đầy đủ"
+                          : "Open full student table"}
+                      </div>
+                      <div className="text-xs app-text-muted">
+                        {isVi
+                          ? "Giữ bảng chi tiết ở dạng gọn, chỉ mở khi cần."
+                          : "Keep the detailed table collapsed until needed."}
+                      </div>
+                    </div>
+
+                    <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                      {session.records.length}
+                    </span>
+                  </summary>
+
+                  <div className="border-t border-[var(--border-main)] p-4">
+                    <StudentTable
+                      records={session.records}
+                      locale={locale}
+                      isVi={isVi}
+                    />
+                  </div>
+                </details>
               </div>
             </section>
           ))
@@ -869,11 +1007,41 @@ export default function ExamReportPage() {
                       </span>
                     </div>
 
-                    <StudentTable
-                      records={session.records}
-                      locale={locale}
-                      isVi={isVi}
-                    />
+                    <div className="space-y-4">
+                      <ClassGroupSummary
+                        records={session.records}
+                        isVi={isVi}
+                      />
+
+                      <details className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                          <div>
+                            <div className="text-sm font-semibold">
+                              {isVi
+                                ? "Mở bảng sinh viên của phiên này"
+                                : "Open student table for this session"}
+                            </div>
+                            <div className="text-xs app-text-muted">
+                              {isVi
+                                ? "Tách theo từng phiên để dễ quét hơn."
+                                : "Separated per session for easier scanning."}
+                            </div>
+                          </div>
+
+                          <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
+                            {session.records.length}
+                          </span>
+                        </summary>
+
+                        <div className="border-t border-[var(--border-main)] p-4">
+                          <StudentTable
+                            records={session.records}
+                            locale={locale}
+                            isVi={isVi}
+                          />
+                        </div>
+                      </details>
+                    </div>
                   </div>
                 ))}
               </div>

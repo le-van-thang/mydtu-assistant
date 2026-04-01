@@ -24,8 +24,50 @@ const DEFAULT_LOOK_BACK_WEEKS = 0;
 const SESSION_CHECK_TIMEOUT_MS = 15000;
 const TAB_LOAD_TIMEOUT_MS = 30000;
 const EXECUTE_TIMEOUT_MS = 180000;
+const TRANSCRIPT_DETAIL_TIMEOUT_MS = 600000;
 const SCRAPE_RENDER_WAIT_MS = 2500;
+const EXAM_SYNC_JOBS = new Map();
 
+function makeJobId(prefix = "job") {
+  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function createJobState(extra = {}) {
+  return {
+    ok: true,
+    done: false,
+    status: "queued", // queued | running | success | error
+    progress: 0,
+    message: "",
+    error: null,
+    result: null,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...extra,
+  };
+}
+
+function setJob(jobId, patch) {
+  const prev = EXAM_SYNC_JOBS.get(jobId) || createJobState();
+  EXAM_SYNC_JOBS.set(jobId, {
+    ...prev,
+    ...patch,
+    updatedAt: Date.now(),
+  });
+}
+
+function getJob(jobId) {
+  return EXAM_SYNC_JOBS.get(jobId) || null;
+}
+
+function cleanupOldJobs(maxAgeMs = 1000 * 60 * 30) {
+  const now = Date.now();
+  for (const [jobId, job] of EXAM_SYNC_JOBS.entries()) {
+    if (now - (job.updatedAt || job.createdAt || now) > maxAgeMs) {
+      EXAM_SYNC_JOBS.delete(jobId);
+    }
+  }
+}
 function log(...args) {
   console.log("[MYDTU EXT]", ...args);
 }
@@ -302,14 +344,19 @@ async function reloadTabAndWait(tabId) {
   await sleep(1600);
 }
 
-async function sendMessageToTabWithRetry(tabId, message, retries = 3) {
+async function sendMessageToTabWithRetry(
+  tabId,
+  message,
+  retries = 3,
+  timeoutMs = EXECUTE_TIMEOUT_MS,
+) {
   let lastError = null;
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     try {
       const response = await withTimeout(
         chrome.tabs.sendMessage(tabId, message),
-        EXECUTE_TIMEOUT_MS,
+        timeoutMs,
         `tabs.sendMessage attempt ${attempt}`,
       );
 
@@ -334,11 +381,13 @@ async function sendMessageToTabWithRetry(tabId, message, retries = 3) {
 
   throw lastError || new Error("sendMessage failed");
 }
-
 function buildSwitchToWeekViewFunction() {
   return async () => {
     function norm(s) {
-      return String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
+      return String(s || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
     }
 
     function isWeekView() {
@@ -361,7 +410,10 @@ function buildSwitchToWeekViewFunction() {
       );
 
     if (!weekBtn) {
-      return { ok: false, error: "Không tìm thấy nút chuyển sang chế độ tuần." };
+      return {
+        ok: false,
+        error: "Không tìm thấy nút chuyển sang chế độ tuần.",
+      };
     }
 
     try {
@@ -389,7 +441,9 @@ function buildSwitchToWeekViewFunction() {
 function buildNavigateWeekFunction() {
   return async (dir) => {
     function norm(s) {
-      return String(s || "").replace(/\s+/g, " ").trim();
+      return String(s || "")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
     function getHeaderText() {
@@ -503,7 +557,9 @@ function buildNavigateWeekFunction() {
 function buildScrapeFunction() {
   return ({ adapterKey, adapterVersion }) => {
     function normalizeSpace(s) {
-      return String(s || "").replace(/\s+/g, " ").trim();
+      return String(s || "")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
     function textOf(selector) {
@@ -558,7 +614,9 @@ function buildScrapeFunction() {
       if (!td || !td.parentElement) return null;
 
       const row = td.parentElement;
-      const cells = Array.from(row.children).filter((el) => el.tagName === "TD");
+      const cells = Array.from(row.children).filter(
+        (el) => el.tagName === "TD",
+      );
       const idx = cells.indexOf(td);
       if (idx < 0 || idx > 6) return null;
 
@@ -586,7 +644,12 @@ function buildScrapeFunction() {
       const parsed = parseTitle(title);
       const dayOfWeek = getDayOfWeekFromAppointment(el);
 
-      if (!parsed.courseCode || !parsed.startTime || !parsed.endTime || !dayOfWeek) {
+      if (
+        !parsed.courseCode ||
+        !parsed.startTime ||
+        !parsed.endTime ||
+        !dayOfWeek
+      ) {
         continue;
       }
 
@@ -714,7 +777,10 @@ function dedupeItems(items) {
 function buildWaitTranscriptReadyFunction() {
   return async () => {
     function normalizeSpace(value) {
-      return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+      return String(value || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
     }
 
     function hasTranscriptReady() {
@@ -724,8 +790,7 @@ function buildWaitTranscriptReadyFunction() {
 
       const text = normalizeSpace(document.body?.innerText || "");
       return (
-        text.includes("bảng điểm sinh viên") &&
-        text.includes("mã sinh viên")
+        text.includes("bảng điểm sinh viên") && text.includes("mã sinh viên")
       );
     }
 
@@ -978,7 +1043,8 @@ async function syncTimetableFromTab(options = {}) {
   if (!items.length) {
     return {
       ok: false,
-      error: "Đã kết nối MYDTU nhưng không scrape được môn học nào từ các tuần đã quét.",
+      error:
+        "Đã kết nối MYDTU nhưng không scrape được môn học nào từ các tuần đã quét.",
     };
   }
 
@@ -1034,6 +1100,119 @@ async function syncExamsFromPdaotao(options = {}) {
       sourcePage: PDOATAO_EXAM_LIST_URL,
       ...response.data,
     },
+  };
+}
+async function runExamSyncJob(jobId, options = {}) {
+  try {
+    setJob(jobId, {
+      status: "running",
+      progress: 5,
+      message: "Đang kiểm tra và mở trang lịch thi...",
+    });
+
+    const tabId = await ensureExamTab();
+
+    setJob(jobId, {
+      progress: 12,
+      message: "Đang tải trang lịch thi...",
+    });
+
+    await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
+    await sleep(1600);
+
+    setJob(jobId, {
+      progress: 20,
+      message: "Đang yêu cầu extension quét danh sách thi...",
+    });
+
+    const response = await sendMessageToTabWithRetry(
+      tabId,
+      {
+        type: "SCRAPE_EXAMS",
+        payload: {
+          maxPages: clampNumber(options?.maxPages, 1, 10, 2),
+          maxItems: clampNumber(options?.maxItems, 1, 60, 24),
+          includePdf: true,
+        },
+      },
+      3,
+      1000 * 60 * 20, // 20 phút
+    );
+
+    if (!response?.ok) {
+      throw new Error(
+        response?.error || "Không scrape được lịch thi từ pdaotao.",
+      );
+    }
+
+    const result = {
+      adapterKey: EXAM_ADAPTER_KEY,
+      adapterVersion: EXAM_ADAPTER_VERSION,
+      sourcePage: PDOATAO_EXAM_LIST_URL,
+      ...response.data,
+    };
+
+    setJob(jobId, {
+      done: true,
+      status: "success",
+      progress: 100,
+      message: "Đồng bộ lịch thi hoàn tất.",
+      result,
+      error: null,
+    });
+  } catch (error) {
+    setJob(jobId, {
+      done: true,
+      status: "error",
+      progress: 100,
+      message: "Đồng bộ lịch thi thất bại.",
+      error: String(error?.message || error),
+      result: null,
+    });
+  }
+}
+
+function startExamSyncJob(options = {}) {
+  cleanupOldJobs();
+
+  const jobId = makeJobId("exam_sync");
+  EXAM_SYNC_JOBS.set(
+    jobId,
+    createJobState({
+      status: "queued",
+      progress: 0,
+      message: "Đang xếp hàng đồng bộ...",
+    }),
+  );
+
+  Promise.resolve()
+    .then(() => runExamSyncJob(jobId, options))
+    .catch((error) => {
+      setJob(jobId, {
+        done: true,
+        status: "error",
+        progress: 100,
+        message: "Đồng bộ lịch thi thất bại.",
+        error: String(error?.message || error),
+        result: null,
+      });
+    });
+
+  return jobId;
+}
+
+function getExamSyncJobStatus(jobId) {
+  const job = getJob(jobId);
+  if (!job) {
+    return {
+      ok: false,
+      error: "Không tìm thấy job đồng bộ lịch thi.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: job,
   };
 }
 async function openOrFocusTranscriptDetailPage() {
@@ -1117,8 +1296,8 @@ async function ensureTranscriptDetailTab() {
 
   return created.id;
 }
-async function syncTranscriptDetailFromTab() {
-  log("syncTranscriptDetailFromTab:start");
+async function syncTranscriptDetailFromTab(options = {}) {
+  log("syncTranscriptDetailFromTab:start", options);
 
   const session = await checkSession();
   if (!session.connected) {
@@ -1131,20 +1310,27 @@ async function syncTranscriptDetailFromTab() {
   const tabId = await ensureTranscriptDetailTab();
 
   await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
-  await sleep(2600);
+  await sleep(1800);
 
   const response = await sendMessageToTabWithRetry(
     tabId,
     {
       type: "SCRAPE_TRANSCRIPT_DETAIL",
+      payload: {
+        targetSemesters: Array.isArray(options?.targetSemesters)
+          ? options.targetSemesters
+          : [],
+      },
     },
     3,
+    TRANSCRIPT_DETAIL_TIMEOUT_MS,
   );
 
   if (!response?.ok) {
     return {
       ok: false,
-      error: response?.error || "Không scrape được bảng điểm chi tiết từ MYDTU.",
+      error:
+        response?.error || "Không scrape được bảng điểm chi tiết từ MYDTU.",
     };
   }
 
@@ -1152,11 +1338,12 @@ async function syncTranscriptDetailFromTab() {
     ok: true,
     data: {
       adapterKey: "mydtu_transcript_detail_v1",
-      adapterVersion: "1.0.0",
+      adapterVersion: "2.0.0",
       ...response.data,
     },
   };
 }
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   let responded = false;
 
@@ -1202,7 +1389,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         reply({ ok: true, data: r });
         return;
       }
+      if (msg.action === "MYDTU_START_EXAM_SYNC") {
+        const jobId = startExamSyncJob(msg.payload || {});
+        reply({
+          ok: true,
+          data: { jobId },
+        });
+        return;
+      }
 
+      if (msg.action === "MYDTU_GET_EXAM_SYNC_STATUS") {
+        const r = getExamSyncJobStatus(msg.payload?.jobId);
+        reply(r);
+        return;
+      }
       if (msg.action === "MYDTU_OPEN_TRANSCRIPT_PAGE") {
         const r = await openOrFocusTranscriptPage();
         reply({ ok: true, data: r });
@@ -1211,6 +1411,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       if (msg.action === "MYDTU_SYNC_TRANSCRIPT") {
         const r = await syncTranscriptFromTab();
+        reply(r);
+        return;
+      }
+
+      if (msg.action === "MYDTU_OPEN_TRANSCRIPT_DETAIL_PAGE") {
+        const r = await openOrFocusTranscriptDetailPage();
+        reply({ ok: true, data: r });
+        return;
+      }
+
+      if (msg.action === "MYDTU_SYNC_TRANSCRIPT_DETAIL") {
+        const r = await syncTranscriptDetailFromTab(msg.payload || {});
         reply(r);
         return;
       }

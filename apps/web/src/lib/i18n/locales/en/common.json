@@ -39,7 +39,14 @@
     "date": "Date",
     "time": "Time",
     "mode": "Mode",
-    "version": "Version"
+    "version": "Version",
+    "quickHintTitle": "Quick hint",
+    "quickHintPrefix": "Go to",
+    "quickHintExamSearch": "to search by course code, student ID, student name, or class in a single search box.",
+    "quickHintExamSearchMobile": "to quickly search by course, student ID, class, and exam date.",
+    "closeMobileSidebar": "Close menu",
+    "closeNavigationMenu": "Close navigation menu",
+    "openNavigationMenu": "Open navigation menu"
   },
   "shell": {
     "userFallback": "User",
@@ -55,6 +62,8 @@
     "study": "Study",
     "timetable": "Timetable",
     "transcript": "Transcript",
+    "transcriptOverview": "Overview transcript",
+    "transcriptDetail": "Detailed transcript",
     "warnings": "Warnings",
     "settings": "Settings",
     "profile": "Profile",

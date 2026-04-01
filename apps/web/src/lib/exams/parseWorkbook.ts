@@ -1,5 +1,3 @@
-// path: apps/web/src/lib/exams/parseWorkbook.ts
-
 import type { ExamNoticeFromExtension } from "@/lib/extensionBridge";
 import * as XLSX from "xlsx";
 
@@ -36,7 +34,6 @@ export type ParsedExamRecord = {
   birthDate: string | null;
   note: string | null;
 
-  // giữ đúng thứ tự gốc trong Excel
   sheetName?: string | null;
   sheetIndex?: number | null;
   rowIndex?: number | null;
@@ -77,32 +74,6 @@ function cleanVisualSeparators(value: unknown) {
     .trim();
 }
 
-function stripTrailingMetaNoise(value: unknown) {
-  return cleanVisualSeparators(value)
-    .replace(/\|\s*Lần\s*thi\s*:?\s*\d+\s*$/i, "")
-    .replace(/\|\s*$/g, "")
-    .trim();
-}
-
-function cleanRoomText(value: unknown) {
-  return stripTrailingMetaNoise(value)
-    .replace(/^phòng\s*:?\s*/i, "")
-    .trim();
-}
-
-function cleanCampusText(value: unknown) {
-  return stripTrailingMetaNoise(value)
-    .replace(/^cơ\s*sở\s*:?\s*/i, "")
-    .trim();
-}
-
-function cleanAttemptText(value: unknown) {
-  return cleanVisualSeparators(value)
-    .replace(/^lần\s*thi\s*:?\s*/i, "")
-    .replace(/[|]+/g, "")
-    .trim();
-}
-
 function makeId(parts: Array<string | number | null | undefined>) {
   return parts.map((p) => normalizeSpace(p ?? "")).join("||");
 }
@@ -136,18 +107,30 @@ function detectPlanType(text: string) {
 function extractCourseMeta(text: string) {
   const raw = normalizeSpace(text);
 
-  const match = raw.match(/MÔN\s*:\s*(.+?)\s*\*\s*MÃ\s*MÔN\s*:\s*([A-Z0-9\s-]+)/i);
+  const match = raw.match(
+    /MÔN\s*:\s*(.+?)\s*\*?\s*SỐ\s*TÍN\s*CHỈ\s*:\s*(\d+)?\s*MÃ\s*MÔN\s*:\s*([A-Z0-9\s-]+)/i,
+  );
 
-  if (!match) {
+  if (match) {
     return {
-      courseName: null,
-      courseCode: "",
+      courseName: normalizeSpace(match[1]) || null,
+      courseCode: normalizeSpace(match[3]) || "",
+    };
+  }
+
+  const fallback = raw.match(
+    /MÔN\s*:\s*(.+?)\s*MÃ\s*MÔN\s*:\s*([A-Z0-9\s-]+)/i,
+  );
+  if (fallback) {
+    return {
+      courseName: normalizeSpace(fallback[1]) || null,
+      courseCode: normalizeSpace(fallback[2]) || "",
     };
   }
 
   return {
-    courseName: normalizeSpace(match[1]) || null,
-    courseCode: normalizeSpace(match[2]),
+    courseName: null,
+    courseCode: "",
   };
 }
 
@@ -172,68 +155,43 @@ function buildMetaRaw(params: {
 function extractExamSessionMeta(text: string): ExamMeta {
   const raw = cleanVisualSeparators(text);
 
-  const regexes = [
-    /Thời\s*gian\s*:?\s*([0-9hH:]{4,8})\s*-\s*Ngày\s*([0-9/]{10})\s*-\s*Phòng\s*:?\s*([^|\n-]+?)(?:\s*-\s*cơ\s*sở\s*:?\s*([^|]+?))?(?:\s*\|\s*Lần\s*thi\s*:?\s*(\d+))?$/i,
-    /Thời\s*gian\s*:?\s*([0-9hH:]{4,8})\s*-\s*Ngày\s*([0-9/]{10})\s*-\s*Phòng\s*:?\s*(.+)$/i,
-  ];
+  const timeMatch =
+    raw.match(/Thời\s*gian\s*:\s*([0-9]{1,2}[:hH][0-9]{2})/i) || null;
+  const dateMatch = raw.match(/(\d{2}\/\d{2}\/\d{4})/);
+  const roomMatch =
+    raw.match(/Phòng\s*:\s*([^|]+?)(?:\s{2,}|$)/i) ||
+    raw.match(/Phòng\s*:\s*(.+)$/i);
+  const attemptMatch = raw.match(/Lần\s*thi\s*:\s*(\d+)/i);
 
-  let match: RegExpMatchArray | null = null;
-  for (const regex of regexes) {
-    match = raw.match(regex);
-    if (match) break;
+  let roomRaw = normalizeSpace(roomMatch?.[1] || "");
+  let campus: string | null = null;
+
+  if (roomRaw.includes("-")) {
+    const parts = roomRaw.split(/\s*-\s*/);
+    if (parts.length >= 2) {
+      roomRaw = normalizeSpace(parts[0]);
+      campus = normalizeSpace(parts.slice(1).join(" - ")) || null;
+    }
   }
 
-  if (!match) {
-    return {
-      examDate: null,
-      startTime: null,
-      endTime: null,
-      room: null,
-      campus: null,
-      raw,
-    };
-  }
-
-  const timePart = match[1] || null;
-  const datePart = match[2] || null;
-  let roomPart = match[3] || "";
-  let campusPart = match[4] || "";
-  let attemptPart = match[5] || "";
-
-  if (!campusPart && roomPart.includes(" - cơ sở")) {
-    const pieces = roomPart.split(/\s*-\s*cơ\s*sở\s*:?\s*/i);
-    roomPart = pieces[0] || "";
-    campusPart = pieces.slice(1).join(" - ") || "";
-  }
-
-  if (!attemptPart) {
-    const attemptMatch = raw.match(/\bLần\s*thi\s*:?\s*(\d+)/i);
-    attemptPart = attemptMatch?.[1] || "";
-  }
-
-  const normalizedTime = String(timePart || "").replace(/[Hh]/g, ":");
-  const timeMatch = normalizedTime.match(/(\d{1,2}):(\d{2})/);
-
-  const startTime = timeMatch
-    ? `${String(timeMatch[1]).padStart(2, "0")}:${timeMatch[2]}`
-    : null;
-
-  const room = cleanRoomText(roomPart) || null;
-  const campus = cleanCampusText(campusPart) || null;
-  const attempt = cleanAttemptText(attemptPart) || null;
+  const normalizedTime = String(timeMatch?.[1] || "").replace(/[Hh]/g, ":");
+  const m = normalizedTime.match(/(\d{1,2}):(\d{2})/);
+  const startTime = m ? `${String(m[1]).padStart(2, "0")}:${m[2]}` : null;
+  const datePart = dateMatch?.[1] || null;
+  const examDate = parseDdMmYyyy(datePart);
 
   return {
-    examDate: parseDdMmYyyy(datePart),
+    examDate,
     startTime,
     endTime: null,
-    room,
+    room: roomRaw || null,
     campus,
     raw: buildMetaRaw({
       startTime,
       datePart,
-      room,
+      room: roomRaw || null,
       campus,
-      attempt,
+      attempt: attemptMatch?.[1] || null,
     }),
   };
 }
@@ -257,12 +215,16 @@ function getHeaderIndexes(row: unknown[]): HeaderIndexes {
   row.forEach((cell, index) => {
     const s = normalizeSearch(cell);
 
-    if (s === "msv") indexes.studentId = index;
+    if (s === "msv" || s === "ma sv") indexes.studentId = index;
     if (s === "ho va") indexes.hoVa = index;
     if (s === "ten") indexes.ten = index;
     if (s.includes("ho ten")) indexes.fullName = index;
-    if (s.includes("lop mon hoc")) indexes.classCourse = index;
-    if (s.includes("lop sinh hoat")) indexes.classStudent = index;
+    if (s.includes("lop hoc phan") || s.includes("lop mon hoc")) {
+      indexes.classCourse = index;
+    }
+    if (s.includes("lop sh") || s.includes("lop sinh hoat")) {
+      indexes.classStudent = index;
+    }
     if (s.includes("ngay sinh")) indexes.birthDate = index;
     if (s.includes("ghi chu")) indexes.note = index;
   });
@@ -272,7 +234,10 @@ function getHeaderIndexes(row: unknown[]): HeaderIndexes {
 
 function isHeaderRow(row: unknown[]) {
   const joined = normalizeSearch(row.join(" | "));
-  return joined.includes("msv") && (joined.includes("ho va") || joined.includes("ho ten"));
+  return (
+    (joined.includes("msv") || joined.includes("ma sv")) &&
+    (joined.includes("ho va") || joined.includes("ho ten"))
+  );
 }
 
 function isLikelyDataRow(row: unknown[], headerIndexes: HeaderIndexes) {
@@ -287,20 +252,261 @@ function combineStudentName(row: unknown[], headerIndexes: HeaderIndexes) {
     return full || null;
   }
 
-  const hoVa = headerIndexes.hoVa >= 0 ? normalizeSpace(row[headerIndexes.hoVa]) : "";
-  const ten = headerIndexes.ten >= 0 ? normalizeSpace(row[headerIndexes.ten]) : "";
+  const hoVa =
+    headerIndexes.hoVa >= 0 ? normalizeSpace(row[headerIndexes.hoVa]) : "";
+  const ten =
+    headerIndexes.ten >= 0 ? normalizeSpace(row[headerIndexes.ten]) : "";
   const full = normalizeSpace(`${hoVa} ${ten}`);
 
   return full || null;
 }
 
-function cleanBirthDate(value: unknown) {
-  const raw = normalizeSpace(value);
-  if (!raw) return null;
-  return raw;
+function getAttachmentKind(
+  notice: ExamNoticeFromExtension,
+): "excel" | "pdf" | "unknown" {
+  const mime = String(notice.attachmentMimeType || "").toLowerCase();
+  const name = String(
+    notice.attachmentName || notice.attachmentUrl || "",
+  ).toLowerCase();
+
+  if (mime.includes("spreadsheet") || mime.includes("excel")) return "excel";
+  if (mime.includes("pdf")) return "pdf";
+  if (name.endsWith(".xlsx") || name.endsWith(".xls")) return "excel";
+  if (name.endsWith(".pdf")) return "pdf";
+  return "unknown";
 }
 
-export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): ParsedExamRecord[] {
+function uint8FromBase64(base64: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+let pdfJsPromise: Promise<any> | null = null;
+
+async function getPdfJs() {
+  if (!pdfJsPromise) {
+    pdfJsPromise = import("pdfjs-dist/legacy/build/pdf.mjs").then((pdfjs) => {
+      if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+          "pdfjs-dist/build/pdf.worker.min.mjs",
+          import.meta.url,
+        ).toString();
+      }
+      return pdfjs;
+    });
+  }
+
+  return pdfJsPromise;
+}
+
+async function extractPdfLines(base64: string): Promise<string[]> {
+  const pdfjs = await getPdfJs();
+  const data = uint8FromBase64(base64);
+
+  const doc = await pdfjs.getDocument({
+    data,
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    disableFontFace: true,
+  }).promise;
+
+  const lines: string[] = [];
+
+  for (let pageNo = 1; pageNo <= doc.numPages; pageNo += 1) {
+    const page = await doc.getPage(pageNo);
+    const textContent = await page.getTextContent();
+
+    const buckets = new Map<number, string[]>();
+
+    for (const item of textContent.items as Array<any>) {
+      const str = normalizeSpace(item?.str || "");
+      if (!str) continue;
+
+      const y = Math.round(item.transform?.[5] || 0);
+      if (!buckets.has(y)) buckets.set(y, []);
+      buckets.get(y)!.push(str);
+    }
+
+    const sorted = Array.from(buckets.entries()).sort((a, b) => b[0] - a[0]);
+    for (const [, parts] of sorted) {
+      const line = normalizeSpace(parts.join(" "));
+      if (line) lines.push(line);
+    }
+  }
+
+  return lines;
+}
+
+function parsePdfStudentLine(
+  line: string,
+  context: {
+    courseCode: string;
+    sessionMeta: ExamMeta;
+    notice: ExamNoticeFromExtension;
+    courseName: string | null;
+    rowIndex: number;
+    recordOrder: number;
+    sessionOrder: number;
+    sheetIndex: number;
+  },
+): ParsedExamRecord | null {
+  const normalized = normalizeSpace(line);
+  if (!/^\d+\s+\d{6,}/.test(normalized)) return null;
+
+  const sttAndId = normalized.match(/^(\d+)\s+(\d{6,})\s+(.+)$/);
+  if (!sttAndId) return null;
+
+  const studentId = sttAndId[2];
+  const rest = sttAndId[3];
+
+  const courseCodePattern = context.courseCode
+    ? context.courseCode.replace(/\s+/g, "\\s+")
+    : "";
+
+  let classCourse: string | null = null;
+  let classStudent: string | null = null;
+  let studentName: string | null = null;
+
+  if (courseCodePattern) {
+    const re = new RegExp(
+      `^(.+?)\\s+(${courseCodePattern}\\s+\\S+)\\s+([A-Za-z0-9-]+)$`,
+      "i",
+    );
+    const m = rest.match(re);
+    if (m) {
+      studentName = normalizeSpace(m[1]) || null;
+      classCourse = normalizeSpace(m[2]) || null;
+      classStudent = normalizeSpace(m[3]) || null;
+    }
+  }
+
+  if (!studentName) {
+    const fallback = rest.split(/\s+/);
+    if (fallback.length >= 3) {
+      classStudent = fallback[fallback.length - 1] || null;
+      studentName =
+        normalizeSpace(fallback.slice(0, fallback.length - 1).join(" ")) ||
+        null;
+    } else {
+      studentName = rest || null;
+    }
+  }
+
+  return {
+    id: makeId([
+      context.notice.detailUrl,
+      context.courseCode,
+      context.sessionMeta.examDate,
+      context.sessionMeta.startTime,
+      context.sessionMeta.room,
+      studentId,
+      context.sheetIndex,
+      context.rowIndex,
+    ]),
+    noticeTitle: context.notice.title,
+    planType: context.notice.planType || detectPlanType(context.notice.title),
+    publishedAtRaw: context.notice.publishedAt?.raw || null,
+    publishedAtDate: context.notice.publishedAt?.date
+      ? parseDdMmYyyy(context.notice.publishedAt.date)
+      : null,
+    detailUrl: context.notice.detailUrl,
+    attachmentUrl: context.notice.attachmentUrl,
+    attachmentName: context.notice.attachmentName || null,
+    courseCode: context.courseCode || context.notice.courseCode || "",
+    courseName: context.courseName || context.notice.courseName || null,
+    examDate: context.sessionMeta.examDate,
+    startTime: context.sessionMeta.startTime,
+    endTime: context.sessionMeta.endTime,
+    room: context.sessionMeta.room,
+    campus: context.sessionMeta.campus,
+    examMetaRaw: context.sessionMeta.raw,
+    studentId,
+    studentName,
+    classCourse,
+    classStudent,
+    birthDate: null,
+    note: null,
+    sheetName: "PDF",
+    sheetIndex: context.sheetIndex,
+    rowIndex: context.rowIndex,
+    sessionOrder: context.sessionOrder,
+    recordOrder: context.recordOrder,
+  };
+}
+
+async function parsePdfNotice(
+  notice: ExamNoticeFromExtension,
+): Promise<ParsedExamRecord[]> {
+  if (!notice.attachmentBase64) return [];
+
+  const lines = await extractPdfLines(notice.attachmentBase64);
+
+  let currentCourseCode = notice.courseCode || "";
+  let currentCourseName = notice.courseName || null;
+  let currentMeta: ExamMeta = {
+    examDate: null,
+    startTime: null,
+    endTime: null,
+    room: null,
+    campus: null,
+    raw: null,
+  };
+  let sessionOrder = -1;
+  let recordOrder = 0;
+
+  const records: ParsedExamRecord[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    const search = normalizeSearch(line);
+
+    if (
+      search.includes("mon:") ||
+      search.includes("ma mon") ||
+      (search.includes("mon") && search.includes("hk"))
+    ) {
+      const meta = extractCourseMeta(line);
+      if (meta.courseCode) currentCourseCode = meta.courseCode;
+      if (meta.courseName) currentCourseName = meta.courseName;
+    }
+
+    if (search.includes("thoi gian") && search.includes("phong")) {
+      currentMeta = extractExamSessionMeta(line);
+      sessionOrder += 1;
+      continue;
+    }
+
+    if (search.includes("ma sv") && search.includes("lop hoc phan")) {
+      continue;
+    }
+
+    const row = parsePdfStudentLine(line, {
+      courseCode: currentCourseCode,
+      sessionMeta: currentMeta,
+      notice,
+      courseName: currentCourseName,
+      rowIndex: i,
+      recordOrder,
+      sessionOrder,
+      sheetIndex: 0,
+    });
+
+    if (row) {
+      records.push(row);
+      recordOrder += 1;
+    }
+  }
+
+  return records;
+}
+
+function parseExcelNotice(notice: ExamNoticeFromExtension): ParsedExamRecord[] {
   if (!notice.attachmentBase64) return [];
 
   const workbook = XLSX.read(notice.attachmentBase64, { type: "base64" });
@@ -342,7 +548,10 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
         return;
       }
 
-      if (joinedSearch.includes("thoi gian") && joinedSearch.includes("ngay")) {
+      if (
+        joinedSearch.includes("thoi gian") &&
+        (joinedSearch.includes("ngay") || joinedSearch.includes("phong"))
+      ) {
         currentExamMeta = extractExamSessionMeta(joined);
         sessionOrder += 1;
         return;
@@ -373,7 +582,9 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
           : null;
 
       const birthDate =
-        headerIndexes.birthDate >= 0 ? cleanBirthDate(row[headerIndexes.birthDate]) : null;
+        headerIndexes.birthDate >= 0
+          ? normalizeSpace(row[headerIndexes.birthDate]) || null
+          : null;
 
       const note =
         headerIndexes.note >= 0
@@ -401,7 +612,7 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
         attachmentUrl: notice.attachmentUrl,
         attachmentName: notice.attachmentName || null,
         courseCode: currentCourseCode || notice.courseCode || "",
-        courseName: currentCourseName || null,
+        courseName: currentCourseName || notice.courseName || null,
         examDate: currentExamMeta.examDate,
         startTime: currentExamMeta.startTime,
         endTime: currentExamMeta.endTime,
@@ -423,21 +634,19 @@ export function parseWorkbookFromNotice(notice: ExamNoticeFromExtension): Parsed
     });
   });
 
-  return Array.from(new Map(records.map((r) => [r.id, r])).values()).sort((a, b) => {
-    const sa = a.sheetIndex ?? 999999;
-    const sb = b.sheetIndex ?? 999999;
-    if (sa !== sb) return sa - sb;
+  return records;
+}
 
-    const xa = a.sessionOrder ?? 999999;
-    const xb = b.sessionOrder ?? 999999;
-    if (xa !== xb) return xa - xb;
+export async function parseWorkbookFromNotice(
+  notice: ExamNoticeFromExtension,
+): Promise<ParsedExamRecord[]> {
+  if (!notice.attachmentBase64) return [];
 
-    const ra = a.rowIndex ?? 999999;
-    const rb = b.rowIndex ?? 999999;
-    if (ra !== rb) return ra - rb;
+  const kind = getAttachmentKind(notice);
 
-    const oa = a.recordOrder ?? 999999;
-    const ob = b.recordOrder ?? 999999;
-    return oa - ob;
-  });
+  if (kind === "pdf") {
+    return await parsePdfNotice(notice);
+  }
+
+  return parseExcelNotice(notice);
 }

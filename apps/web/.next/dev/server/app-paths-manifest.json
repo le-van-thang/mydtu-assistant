@@ -1,0 +1,17 @@
+{
+  "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
+  "/(app)/exams/page": "app/(app)/exams/page.js",
+  "/(app)/planner/page": "app/(app)/planner/page.js",
+  "/(app)/timetable/page": "app/(app)/timetable/page.js",
+  "/(app)/transcript/detail/page": "app/(app)/transcript/detail/page.js",
+  "/(app)/transcript/page": "app/(app)/transcript/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/sync/timetable/route": "app/api/sync/timetable/route.js",
+  "/api/sync/transcript/route": "app/api/sync/transcript/route.js",
+  "/api/timetable/route": "app/api/timetable/route.js",
+  "/api/transcript/detail/route": "app/api/transcript/detail/route.js",
+  "/api/transcript/route": "app/api/transcript/route.js",
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js"
+}

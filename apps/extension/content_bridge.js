@@ -1,5 +1,4 @@
 // path: apps/extension/content_bridge.js
-
 (() => {
   const SOURCE = "mydtu-assistant-web";
   const TARGET = "mydtu-assistant-extension";
@@ -69,8 +68,12 @@
       chrome.runtime.sendMessage(message, (response) => {
         const err = chrome.runtime?.lastError;
         if (err) {
-          const rawMessage = String(err.message || "Runtime sendMessage failed");
-          const normalized = rawMessage.toLowerCase().includes("context invalidated")
+          const rawMessage = String(
+            err.message || "Runtime sendMessage failed",
+          );
+          const normalized = rawMessage
+            .toLowerCase()
+            .includes("context invalidated")
             ? "Extension context invalidated. Hãy reload extension và hard refresh trang web."
             : rawMessage;
 
@@ -85,7 +88,9 @@
       });
     } catch (e) {
       const rawMessage = String(e?.message || e);
-      const normalized = rawMessage.toLowerCase().includes("context invalidated")
+      const normalized = rawMessage
+        .toLowerCase()
+        .includes("context invalidated")
         ? "Extension context invalidated. Hãy reload extension và hard refresh trang web."
         : rawMessage;
 

@@ -39,7 +39,14 @@
     "date": "Ngày",
     "time": "Giờ",
     "mode": "Hình thức",
-    "version": "Phiên bản"
+    "version": "Phiên bản",
+    "quickHintTitle": "Gợi ý dùng nhanh",
+    "quickHintPrefix": "Vào",
+    "quickHintExamSearch": "để tìm theo mã môn, mã sinh viên, tên sinh viên hoặc lớp chỉ trong một ô tìm kiếm.",
+    "quickHintExamSearchMobile": "để tra cứu nhanh theo môn, mã sinh viên, lớp và ngày thi.",
+    "closeMobileSidebar": "Đóng menu",
+    "closeNavigationMenu": "Đóng menu điều hướng",
+    "openNavigationMenu": "Mở menu điều hướng"
   },
   "shell": {
     "userFallback": "Người dùng",
@@ -55,6 +62,8 @@
     "study": "Học tập",
     "timetable": "Thời khoá biểu",
     "transcript": "Bảng điểm",
+    "transcriptOverview": "Bảng điểm tổng quát",
+    "transcriptDetail": "Bảng điểm chi tiết",
     "warnings": "Cảnh báo",
     "settings": "Cài đặt",
     "profile": "Hồ sơ",
