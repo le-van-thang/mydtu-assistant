@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 18, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":""}},
-    {"offset": {"line": 23, "column": 0}, "map": {"version":3,"sources":["file:///D:/mydtu/mydtu-assistant/apps/web/src/app/%28app%29/settings/page.tsx"],"sourcesContent":["// path: apps/web/src/app/(app)/settings/page.tsx\n\nimport SettingsClient from \"./SettingsClient\";\n\nexport default function SettingsPage() {\n  return <SettingsClient />;\n}"],"names":[],"mappings":";;;;;AAAA,iDAAiD;AAEjD;;;AAEe,SAAS;IACtB,qBAAO,6WAAC,8KAAc;;;;;AACxB"}}]
-}

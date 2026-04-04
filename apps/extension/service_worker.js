@@ -9,6 +9,8 @@ const MYDTU_TRANSCRIPT_URL =
   "https://mydtu.duytan.edu.vn/sites/index.aspx?p=home_bangdiem&functionid=14";
 const MYDTU_TRANSCRIPT_DETAIL_URL =
   "https://mydtu.duytan.edu.vn/sites/index.aspx?p=home_grading_classbysemester&functionid=82";
+const MYDTU_RATING_URL =
+  "https://mydtu.duytan.edu.vn/sites/index.aspx?p=home_ratingchoicesemester&functionid=15";
 
 const TRANSCRIPT_ADAPTER_KEY = "mydtu_transcript_v1";
 const TRANSCRIPT_ADAPTER_VERSION = "4.0.0";
@@ -24,9 +26,13 @@ const DEFAULT_LOOK_BACK_WEEKS = 0;
 const SESSION_CHECK_TIMEOUT_MS = 15000;
 const TAB_LOAD_TIMEOUT_MS = 30000;
 const EXECUTE_TIMEOUT_MS = 180000;
-const TRANSCRIPT_DETAIL_TIMEOUT_MS = 600000;
+const TRANSCRIPT_DETAIL_TIMEOUT_MS = 1200000; // 20 phút — đủ cho sinh viên có nhiều học kỳ
+const RATEFLOW_SCAN_TIMEOUT_MS = 40000;
+const RATEFLOW_FILL_TIMEOUT_MS = 15000;
+const RATEFLOW_SUBMIT_TIMEOUT_MS = 20000;
 const SCRAPE_RENDER_WAIT_MS = 2500;
 const EXAM_SYNC_JOBS = new Map();
+const RATEFLOW_JOBS = new Map();
 
 function makeJobId(prefix = "job") {
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -116,13 +122,15 @@ async function checkSession() {
 
     const ok =
       res.ok &&
-      (text.includes("Bảng điểm") ||
-        text.includes("Bảng Điểm") ||
+      !res.url.toLowerCase().includes("/login") &&
+      !text.includes("frmLogin") &&
+      !text.includes("LoginUser_UserName") &&
+      (text.includes("myDUYTAN") ||
+        text.includes("Bảng điểm") ||
         text.includes("Sinh viên:") ||
         text.includes("Mã Sinh viên") ||
-        text.includes("myDUYTAN")) &&
-      !text.includes("login") &&
-      !text.includes("dang nhap");
+        text.includes("home_bangdiem") ||
+        text.includes("home_grading"));
 
     return {
       connected: ok,
@@ -1215,6 +1223,138 @@ function getExamSyncJobStatus(jobId) {
     data: job,
   };
 }
+
+async function runTranscriptDetailSyncJob(jobId, options = {}) {
+  try {
+    const modeLabel = options?.maxYears > 0
+      ? `${options.maxYears} năm gần nhất`
+      : "toàn bộ lịch sử";
+
+    setJob(jobId, {
+      status: "running",
+      progress: 5,
+      message: "Đang kiểm tra phiên đăng nhập MYDTU...",
+    });
+
+    const session = await checkSession();
+    if (!session.connected) {
+      throw new Error(
+        "Bạn chưa đăng nhập MYDTU hoặc phiên đăng nhập đã hết hạn.",
+      );
+    }
+
+    setJob(jobId, {
+      progress: 15,
+      message: "Đang mở trang bảng điểm chi tiết MYDTU...",
+    });
+
+    const tabId = await ensureTranscriptDetailTab();
+
+    await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
+    await sleep(800);
+
+    setJob(jobId, {
+      progress: 30,
+      message: `Đang quét danh sách học kỳ và lớp học phần (${modeLabel})...`,
+    });
+
+    const response = await sendMessageToTabWithRetry(
+      tabId,
+      {
+        type: "SCRAPE_TRANSCRIPT_DETAIL",
+        payload: {
+          targetSemesters: Array.isArray(options?.targetSemesters)
+            ? options.targetSemesters
+            : [],
+          maxYears: Number(options?.maxYears) || 0,
+          jobId: jobId, // ← content script dùng để gửi progress keepalive về SW
+        },
+      },
+      3,
+      TRANSCRIPT_DETAIL_TIMEOUT_MS,
+    );
+
+    if (!response?.ok) {
+      throw new Error(
+        response?.error || "Không scrape được bảng điểm chi tiết từ MYDTU.",
+      );
+    }
+
+    const totalItems = Number(response?.data?.meta?.totalItems || 0);
+    const totalSemesters = Number(
+      response?.data?.meta?.scannedSemesters?.length ||
+        response?.data?.meta?.totalSemesters ||
+        0,
+    );
+
+    setJob(jobId, {
+      done: true,
+      status: "success",
+      progress: 100,
+      message: `Đồng bộ xong: ${totalItems} thành phần điểm từ ${totalSemesters} học kỳ.`,
+      error: null,
+      result: {
+        adapterKey: "mydtu_transcript_detail_v1",
+        adapterVersion: "3.1.0",
+        ...response.data,
+      },
+    });
+  } catch (error) {
+    setJob(jobId, {
+      done: true,
+      status: "error",
+      progress: 0,
+      message: "Đồng bộ bảng điểm chi tiết thất bại.",
+      error: String(error?.message || error),
+      result: null,
+    });
+  }
+}
+
+function startTranscriptDetailSyncJob(options = {}) {
+  cleanupOldJobs();
+
+  const jobId = makeJobId("transcript_detail_sync");
+  EXAM_SYNC_JOBS.set(
+    jobId,
+    createJobState({
+      status: "queued",
+      progress: 0,
+      message: "Đang xếp hàng đồng bộ bảng điểm chi tiết...",
+    }),
+  );
+
+  Promise.resolve()
+    .then(() => runTranscriptDetailSyncJob(jobId, options))
+    .catch((error) => {
+      setJob(jobId, {
+        done: true,
+        status: "error",
+        progress: 0,
+        message: "Đồng bộ bảng điểm chi tiết thất bại.",
+        error: String(error?.message || error),
+        result: null,
+      });
+    });
+
+  return jobId;
+}
+
+function getTranscriptDetailSyncJobStatus(jobId) {
+  const job = getJob(jobId);
+  if (!job) {
+    return {
+      ok: false,
+      error: "Không tìm thấy job đồng bộ bảng điểm chi tiết.",
+    };
+  }
+
+  return {
+    ok: true,
+    data: job,
+  };
+}
+
 async function openOrFocusTranscriptDetailPage() {
   const tabs = await chrome.tabs.query({
     url: ["https://mydtu.duytan.edu.vn/*"],
@@ -1296,52 +1436,208 @@ async function ensureTranscriptDetailTab() {
 
   return created.id;
 }
-async function syncTranscriptDetailFromTab(options = {}) {
-  log("syncTranscriptDetailFromTab:start", options);
 
-  const session = await checkSession();
-  if (!session.connected) {
-    return {
-      ok: false,
-      error: "Bạn chưa đăng nhập MYDTU hoặc phiên đăng nhập đã hết hạn.",
-    };
-  }
+// ═══════════════════════════════════════════════════════════════
+// RATEFLOW HELPERS
+// ═══════════════════════════════════════════════════════════════
 
-  const tabId = await ensureTranscriptDetailTab();
+async function openOrFocusRatingPage() {
+  const tabs = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
 
-  await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
-  await sleep(1800);
-
-  const response = await sendMessageToTabWithRetry(
-    tabId,
-    {
-      type: "SCRAPE_TRANSCRIPT_DETAIL",
-      payload: {
-        targetSemesters: Array.isArray(options?.targetSemesters)
-          ? options.targetSemesters
-          : [],
-      },
-    },
-    3,
-    TRANSCRIPT_DETAIL_TIMEOUT_MS,
+  const existing = tabs.find((t) =>
+    String(t.url || "").includes("ratingchoicesemester") ||
+    String(t.url || "").includes("functionid=15")
   );
 
-  if (!response?.ok) {
-    return {
-      ok: false,
-      error:
-        response?.error || "Không scrape được bảng điểm chi tiết từ MYDTU.",
-    };
+  if (existing?.id) {
+    await chrome.tabs.update(existing.id, { active: true, url: MYDTU_RATING_URL });
+    if (existing.windowId) await chrome.windows.update(existing.windowId, { focused: true });
+    return { tabId: existing.id, reused: true };
   }
 
-  return {
-    ok: true,
-    data: {
-      adapterKey: "mydtu_transcript_detail_v1",
-      adapterVersion: "2.0.0",
-      ...response.data,
-    },
-  };
+  if (tabs[0]?.id) {
+    await chrome.tabs.update(tabs[0].id, { active: true, url: MYDTU_RATING_URL });
+    if (tabs[0].windowId) await chrome.windows.update(tabs[0].windowId, { focused: true });
+    return { tabId: tabs[0].id, reused: true };
+  }
+
+  const created = await chrome.tabs.create({ url: MYDTU_RATING_URL, active: true });
+  return { tabId: created.id, reused: false };
+}
+
+async function ensureRatingTab() {
+  const tabs = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
+
+  const existing = tabs.find((t) =>
+    String(t.url || "").includes("ratingchoicesemester") ||
+    String(t.url || "").includes("functionid=15") ||
+    String(t.url || "").includes("home_ratingform")
+  );
+  if (existing?.id) return existing.id;
+
+  if (tabs[0]?.id) {
+    await chrome.tabs.update(tabs[0].id, { url: MYDTU_RATING_URL, active: false });
+    return tabs[0].id;
+  }
+
+  const created = await chrome.tabs.create({ url: MYDTU_RATING_URL, active: false });
+  if (!created.id) throw new Error("Không tạo được tab đánh giá MYDTU.");
+  return created.id;
+}
+
+async function rateflowScanTeachers() {
+  try {
+    const tabId = await ensureRatingTab();
+    await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
+    await sleep(SCRAPE_RENDER_WAIT_MS);
+
+    const result = await withTimeout(
+      chrome.tabs.sendMessage(tabId, { type: "RATEFLOW_SCAN_TEACHERS" }),
+      RATEFLOW_SCAN_TIMEOUT_MS,
+      "rateflow scan timeout"
+    );
+    return result;
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e) };
+  }
+}
+
+async function rateflowFillForm({ formUrl, policy, texts } = {}) {
+  try {
+    const tabs = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
+    let tabId = tabs.find((t) =>
+      String(t.url || "").includes("home_ratingform") ||
+      String(t.url || "").includes("ratingchoicesemester")
+    )?.id;
+
+    if (!tabId) {
+      if (tabs[0]?.id) tabId = tabs[0].id;
+      else throw new Error("Không tìm thấy tab MYDTU.");
+    }
+
+    // Navigate to form URL
+    if (formUrl) {
+      await chrome.tabs.update(tabId, { url: formUrl, active: false });
+      await waitForTabComplete(tabId, TAB_LOAD_TIMEOUT_MS);
+      await sleep(2000);
+    }
+
+    const result = await withTimeout(
+      chrome.tabs.sendMessage(tabId, {
+        type: "RATEFLOW_FILL_FORM",
+        payload: { policy: policy || "random_4_5", texts: texts || {} },
+      }),
+      RATEFLOW_FILL_TIMEOUT_MS,
+      "rateflow fill timeout"
+    );
+    return result;
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e) };
+  }
+}
+
+async function rateflowReloadCaptcha() {
+  try {
+    const tabs = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
+    const tabId = tabs.find((t) => String(t.url || "").includes("ratingform"))?.id
+      || tabs[0]?.id;
+    if (!tabId) return { ok: false, error: "Không tìm thấy tab form đánh giá" };
+
+    const result = await withTimeout(
+      chrome.tabs.sendMessage(tabId, { type: "RATEFLOW_RELOAD_CAPTCHA" }),
+      10000,
+      "rateflow reload captcha timeout"
+    );
+    return result;
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e) };
+  }
+}
+
+async function rateflowSubmit({ captchaText } = {}) {
+  try {
+    const tabs = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
+    const tabId = tabs.find((t) => String(t.url || "").includes("ratingform"))?.id
+      || tabs[0]?.id;
+    if (!tabId) return { ok: false, error: "Không tìm thấy tab form đánh giá" };
+
+    const result = await withTimeout(
+      chrome.tabs.sendMessage(tabId, {
+        type: "RATEFLOW_SUBMIT",
+        payload: { captchaText: captchaText || "" },
+      }),
+      RATEFLOW_SUBMIT_TIMEOUT_MS,
+      "rateflow submit timeout"
+    );
+    return result;
+  } catch (e) {
+    const errText = String(e?.message || e);
+    // When JS submits, MYDTU unloads the page.
+    if (
+      errText.includes("message channel closed") || 
+      errText.includes("A listener indicated an asynchronous response") ||
+      errText.includes("Extension context invalidated")
+    ) {
+      // Find the tab again after reload
+      const tabsBack = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
+      // We look for the active tab or any rating tab
+      let tBackId = tabsBack.find((t) => String(t.url || "").includes("rating"))?.id || tabsBack[0]?.id;
+      
+      if (!tBackId) return { ok: false, error: "Lỗi kết nối: Tab MYDTU đã bị đóng!" };
+
+      // Give it time to finish rendering the PostBack payload
+      try { await waitForTabComplete(tBackId, 8000); } catch(ex) {}
+      await sleep(1500); // Buffer for ASP.NET server rendering
+
+      const finalTab = await chrome.tabs.get(tBackId);
+      const finalUrl = String(finalTab.url || "").toLowerCase();
+
+      // ASP.NET PostBacks don't change the URL string, even on success!
+      // We MUST check the actual DOM content to know if it succeeded.
+      let isSuccess = false;
+      try {
+         const dCheck = await chrome.scripting.executeScript({
+            target: { tabId: tBackId },
+            func: () => {
+               const imgs = Array.from(document.querySelectorAll("img"));
+               const hasCaptcha = imgs.some(i => {
+                  const src = (i.src || "").toLowerCase();
+                  return src.includes("capcha") || src.includes("captcha");
+               });
+               const hasRadios = document.querySelectorAll("input[type='radio']").length > 0;
+               return {
+                  hasCaptcha,
+                  hasRadios
+               };
+            }
+         });
+         const state = dCheck[0]?.result || { hasCaptcha: true, hasRadios: true };
+         
+         // SUCCESS ONLY if the form elements (captcha and radios) have completely disappeared from the DOM.
+         // MYDTU prints "Cám ơn bạn đã đánh giá" in the header of the active form, so text checking is fatally flawed!
+         if (!state.hasCaptcha && !state.hasRadios) {
+            isSuccess = true;
+         } else {
+            isSuccess = false;
+         }
+      } catch (e) {
+         // Fallback just in case
+         isSuccess = !finalUrl.includes("ratingform");
+      }
+
+      if (!isSuccess) {
+         // MyDTU re-injected the form, meaning the submission failed (usually CAPTCHA)
+         return { 
+            ok: false, 
+            captchaError: true, 
+            error: "MYDTU từ chối Đánh giá (Mã CAPTCHA sai hoặc phiên hết hạn)." 
+         };
+      } else {
+         return { ok: true, redirectedTo: finalUrl };
+      }
+    }
+    return { ok: false, error: errText };
+  }
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -1355,6 +1651,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   (async () => {
     try {
+      // --- Xử lý progress từ content script (MV3 keepalive) ---
+      if (msg?.type === "TRANSCRIPT_DETAIL_PROGRESS") {
+        const { jobId, progress, message } = msg || {};
+        if (jobId) {
+          setJob(jobId, {
+            progress: Number(progress) || 30,
+            message: String(message || ""),
+          });
+        }
+        reply({ ok: true });
+        return;
+      }
+
       if (!msg || msg.type !== "WEB_TO_EXTENSION") {
         reply({ ok: false, error: "Unknown message" });
         return;
@@ -1422,7 +1731,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
 
       if (msg.action === "MYDTU_SYNC_TRANSCRIPT_DETAIL") {
-        const r = await syncTranscriptDetailFromTab(msg.payload || {});
+        const jobId = startTranscriptDetailSyncJob(msg.payload || {});
+        reply({
+          ok: true,
+          data: { jobId },
+        });
+        return;
+      }
+
+      if (msg.action === "MYDTU_GET_TRANSCRIPT_DETAIL_SYNC_STATUS") {
+        const r = getTranscriptDetailSyncJobStatus(msg.payload?.jobId);
         reply(r);
         return;
       }
@@ -1430,6 +1748,51 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (msg.action === "MYDTU_SYNC_EXAMS") {
         const r = await syncExamsFromPdaotao(msg.payload || {});
         reply(r);
+        return;
+      }
+
+      if (msg.action === "MYDTU_RATEFLOW_OPEN_PAGE") {
+        const r = await openOrFocusRatingPage();
+        reply({ ok: true, data: r });
+        return;
+      }
+      
+      if (msg.action === "MYDTU_RATEFLOW_REDIRECT") {
+        const { url } = msg.payload || {};
+        const tabs = await chrome.tabs.query({ url: ["https://mydtu.duytan.edu.vn/*"] });
+        const extTab = tabs.find(t => String(t.url || "").includes("rating")) || tabs[0];
+        if (extTab && extTab.id && url) {
+            chrome.tabs.update(extTab.id, { url });
+            reply({ ok: true });
+        } else {
+            reply({ ok: false, error: "MYDTU tab not found or url missing" });
+        }
+        return;
+      }
+
+      if (msg.action === "MYDTU_RATEFLOW_SCAN") {
+        const r = await rateflowScanTeachers();
+        reply(r.ok ? { ok: true, data: r } : r);
+        return;
+      }
+
+      if (msg.action === "MYDTU_RATEFLOW_FILL_FORM") {
+        const { formUrl, policy, texts } = msg.payload || {};
+        const r = await rateflowFillForm({ formUrl, policy, texts });
+        reply(r.ok ? { ok: true, data: r } : r);
+        return;
+      }
+
+      if (msg.action === "MYDTU_RATEFLOW_RELOAD_CAPTCHA") {
+        const r = await rateflowReloadCaptcha();
+        reply(r.ok ? { ok: true, data: r } : r);
+        return;
+      }
+
+      if (msg.action === "MYDTU_RATEFLOW_SUBMIT") {
+        const { captchaText } = msg.payload || {};
+        const r = await rateflowSubmit({ captchaText });
+        reply(r.ok ? { ok: true, data: r } : r);
         return;
       }
 

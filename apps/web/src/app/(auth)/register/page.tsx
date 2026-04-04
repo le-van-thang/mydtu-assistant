@@ -382,7 +382,13 @@ export default function RegisterPage() {
             <h1 className="auth-title">{t("auth.registerTitle")}</h1>
             <p className="auth-subtitle">{t("auth.registerSubtitle")}</p>
 
-            <div className="auth-form">
+            <form
+              className="auth-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void onSubmit();
+              }}
+            >
               <div className="auth-grid-2">
                 <div className="auth-field">
                   <label htmlFor="fullName" className="auth-label">
@@ -402,6 +408,7 @@ export default function RegisterPage() {
                     autoComplete="name"
                     aria-describedby={nameHint ? nameHintId : undefined}
                     placeholder={t("auth.fullName")}
+                    required
                   />
                   {nameHint ? (
                     <div id={nameHintId} className="auth-inline-error">
@@ -432,6 +439,7 @@ export default function RegisterPage() {
                     aria-describedby={emailHint ? emailHintId : undefined}
                     inputMode="email"
                     placeholder="name@example.com"
+                    required
                   />
                   {emailHint ? (
                     <div id={emailHintId} className="auth-inline-error">
@@ -481,6 +489,7 @@ export default function RegisterPage() {
                     }}
                     autoComplete="bday"
                     aria-describedby={birthDateHint ? birthDateHintId : undefined}
+                    required
                   />
                   {birthDateHint ? (
                     <div id={birthDateHintId} className="auth-inline-error">
@@ -498,9 +507,11 @@ export default function RegisterPage() {
                 </label>
                 <input
                   id="placeOfBirth"
+                  name="placeOfBirth"
                   className="app-input"
                   value={placeOfBirth}
                   onChange={(e) => setPlaceOfBirth(e.target.value)}
+                  autoComplete="address-level2"
                   placeholder={t("auth.placeOfBirthOptional")}
                 />
               </div>
@@ -514,7 +525,7 @@ export default function RegisterPage() {
                     <input
                       ref={passwordRef}
                       id="password"
-                      name="new-password"
+                      name="password"
                       className={`app-input auth-password-input ${pwdHint ? "app-input-error" : ""}`}
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -522,6 +533,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       aria-describedby={pwdHint ? pwdHintId : undefined}
                       placeholder="••••••••"
+                      required
                     />
                     <button
                       type="button"
@@ -553,7 +565,7 @@ export default function RegisterPage() {
                     <input
                       ref={confirmPasswordRef}
                       id="confirmPassword"
-                      name="confirm-password"
+                      name="confirmPassword"
                       className={`app-input auth-password-input ${
                         confirmHint ? "app-input-error" : ""
                       }`}
@@ -563,6 +575,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       aria-describedby={confirmHint ? confirmHintId : undefined}
                       placeholder="••••••••"
+                      required
                     />
                     <button
                       type="button"
@@ -597,8 +610,7 @@ export default function RegisterPage() {
               <button
                 className="app-btn-primary auth-submit-btn"
                 disabled={!canSubmit}
-                onClick={onSubmit}
-                type="button"
+                type="submit"
               >
                 {submitting ? t("auth.loading") : t("auth.register")}
               </button>
@@ -609,7 +621,7 @@ export default function RegisterPage() {
                   {t("auth.login")}
                 </Link>
               </div>
-            </div>
+            </form>
           </div>
         </div>
 

@@ -539,7 +539,7 @@ export default function SettingsClient() {
           <button
             type="button"
             onClick={handleSave}
-            className="app-btn-primary rounded-2xl px-4 py-1.5 text-sm font-semibold"
+            className="app-btn-primary rounded-2xl px-5 py-2 text-sm font-bold shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
           >
             {t("settings.saveButton")}
           </button>
@@ -636,7 +636,7 @@ export default function SettingsClient() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={avatarBusy}
-                  className="app-btn rounded-2xl px-4 py-2 text-sm font-semibold"
+                  className="rounded-2xl border flex items-center justify-center border-[var(--accent)] bg-[var(--accent)] text-white px-4 py-2 text-sm font-bold shadow-md shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200"
                 >
                   {avatarBusy
                     ? t("common.loading")
@@ -647,7 +647,7 @@ export default function SettingsClient() {
                   <button
                     type="button"
                     onClick={() => setAvatarPreviewOpen(true)}
-                    className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-2 text-sm font-semibold"
+                    className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-2 text-sm font-semibold hover:-translate-y-0.5 hover:bg-[var(--bg-card-strong)] active:scale-95 transition-all duration-200"
                   >
                     {t("settings.profileCard.previewAvatar")}
                   </button>
@@ -656,7 +656,7 @@ export default function SettingsClient() {
                 <button
                   type="button"
                   onClick={handleRemoveAvatar}
-                  className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-2 text-sm font-semibold"
+                  className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-2 text-sm font-semibold hover:-translate-y-0.5 hover:bg-rose-500 hover:text-white active:scale-95 transition-all duration-200"
                 >
                   {t("settings.profileCard.removeAvatar")}
                 </button>
@@ -863,17 +863,32 @@ export default function SettingsClient() {
               />
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-4">
               <ActionButton primary onClick={handleQuickSync}>
-                {t("settings.dataSync.syncNow")}
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {t("settings.dataSync.syncNow")}
+                </span>
               </ActionButton>
 
               <ActionButton onClick={handleExportJson}>
-                {t("settings.dataSync.exportJson")}
+                 <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {t("settings.dataSync.exportJson")}
+                </span>
               </ActionButton>
 
               <ActionButton dangerSoft onClick={handleClearUiCache}>
-                {t("settings.dataSync.clearLocalCache")}
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {t("settings.dataSync.clearLocalCache")}
+                </span>
               </ActionButton>
 
               <ActionButton onClick={handleResetOnboarding}>
@@ -885,9 +900,13 @@ export default function SettingsClient() {
               </ActionButton>
             </div>
 
-            <p className="mt-4 text-sm app-text-muted">
-              {t("settings.dataSync.hint")}
-            </p>
+            <ExpandableHint title="Gợi ý chức năng Dữ liệu & Đồng bộ">
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Đồng bộ ngay:</strong> Bấm để bắt buộc tải lại dữ liệu mới nhất (gợi ý dùng khi báo lỗi/chưa có).</li>
+                <li><strong>Xuất JSON:</strong> Cho phép xuất tệp lưu trữ ngoại tuyến bảng điểm & lịch học. Đề phòng mất dữ liệu.</li>
+                <li><strong>Xóa Cache:</strong> Gỡ lỗi hiển thị nội dung trên ứng dụng mà không thay đổi cấu hình DB của bạn.</li>
+              </ul>
+            </ExpandableHint>
           </SectionCard>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -958,17 +977,20 @@ export default function SettingsClient() {
             title={t("settings.dangerZone.title")}
             subtitle={t("settings.dangerZone.subtitle")}
           >
-            <div className="rounded-2xl border border-red-500/15 bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
-              Bạn đang ở khu vực thao tác nhạy cảm. Đăng xuất sẽ kết thúc phiên hiện tại, còn xóa tài khoản sẽ xóa toàn bộ dữ liệu liên quan và không thể hoàn tác.
+            <div className="rounded-2xl border border-red-500/15 bg-[var(--danger-soft)] px-5 py-4 text-sm text-[var(--danger)] leading-relaxed font-medium">
+              Bạn đang ở khu vực thao tác nhạy cảm. Đăng xuất sẽ kết thúc phiên hiện tại, còn xóa tài khoản sẽ lập tức xóa toàn bộ dữ liệu lịch học và bảng điểm liên quan. <strong>Không thể hoàn tác lại bước này.</strong>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 lg:flex-row">
+            <div className="mt-5 flex flex-col gap-4 lg:flex-row">
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={logoutBusy}
-                className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-3 text-sm font-semibold transition hover:opacity-90 disabled:opacity-60"
+                className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card)] px-6 py-3 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2 group"
               >
+                <svg className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
                 {logoutBusy
                   ? t("common.loading")
                   : t("settings.dangerZone.logout")}
@@ -977,15 +999,21 @@ export default function SettingsClient() {
               <button
                 type="button"
                 onClick={openDeleteModal}
-                className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                className="rounded-2xl bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-red-600/40 hover:bg-red-500 active:scale-95 flex items-center justify-center gap-2"
               >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
                 {t("settings.dangerZone.deleteAccount")}
               </button>
             </div>
 
-            <p className="mt-4 text-sm app-text-muted">
-              {t("settings.dangerZone.hint")}
-            </p>
+            <ExpandableHint title="Lưu ý khi thay đổi tài khoản">
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Dữ liệu MYDTU đã đồng bộ sẽ bị dọn sạch toàn bộ khi xóa tài khoản.</li>
+                <li>Hệ thống <strong>khuyến nghị production</strong> yêu cầu bạn phải xác thực biểu mẫu gồm keyword và mật khẩu để chứng minh hành động xóa.</li>
+              </ul>
+            </ExpandableHint>
           </SectionCard>
         </div>
 
@@ -1173,10 +1201,10 @@ function ChoiceButton({
       type="button"
       onClick={onClick}
       className={classNames(
-        "rounded-2xl border px-3 py-2 text-sm font-medium transition",
+        "rounded-2xl border px-3 py-2 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-95",
         active
-          ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-          : "border-[var(--border-main)] bg-[var(--bg-soft)] app-text-soft"
+          ? "border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30"
+          : "border-[var(--border-main)] bg-[var(--bg-soft)] app-text-soft hover:border-[var(--accent)]/40 hover:text-[var(--text-main)]"
       )}
     >
       {children}
@@ -1220,8 +1248,8 @@ function ToggleRow({
           className="peer sr-only"
           aria-label={label}
         />
-        <span className="block h-7 w-12 rounded-full bg-slate-400/35 transition peer-checked:bg-[var(--accent)]" />
-        <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition peer-checked:left-6" />
+        <span className="block h-7 w-12 rounded-full bg-slate-400/35 transition-colors duration-300 peer-checked:bg-[var(--accent)]" />
+        <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 peer-checked:translate-x-5" />
       </label>
     </div>
   );
@@ -1254,12 +1282,12 @@ function ActionButton({
       type="button"
       onClick={onClick}
       className={classNames(
-        "rounded-2xl px-4 py-2.5 text-sm font-semibold transition hover:opacity-90",
+        "rounded-2xl px-5 py-2.5 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 active:scale-95 shadow-sm hover:shadow-md",
         primary
-          ? "bg-[var(--accent)] text-white"
+          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/20 hover:shadow-blue-500/40 border border-transparent"
           : dangerSoft
-          ? "border border-red-500/15 bg-[var(--danger-soft)] text-[var(--danger)]"
-          : "border border-[var(--border-main)] bg-[var(--bg-soft)] text-[var(--text-main)]"
+          ? "border border-red-500 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 hover:bg-red-600 hover:text-white"
+          : "border border-[var(--border-main)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
       )}
     >
       {children}
@@ -1295,10 +1323,10 @@ function ChecklistItem({
   done?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-3">
+    <div className="flex items-start gap-3 rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-3 transition hover:border-[var(--accent)]/40 hover:shadow-sm">
       <div
         className={classNames(
-          "mt-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold",
+          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm",
           done
             ? "bg-[var(--success-soft)] text-[var(--success)]"
             : "bg-[var(--warning-soft)] text-[var(--warning)]"
@@ -1306,7 +1334,45 @@ function ChecklistItem({
       >
         {done ? "✓" : "!"}
       </div>
-      <div className="text-sm">{children}</div>
+      <div className="text-sm font-medium">{children}</div>
+    </div>
+  );
+}
+
+function ExpandableHint({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] transition-all hover:border-[var(--accent)]/40">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold text-[var(--accent)] hover:bg-[var(--bg-card-strong)] transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {title}
+        </span>
+        <svg
+          className={classNames("h-4 w-4 transition-transform duration-300", open ? "rotate-180" : "rotate-0")}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={classNames(
+          "grid transition-all duration-300 ease-in-out",
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-[var(--border-main)] px-4 py-4 text-sm app-text-muted leading-relaxed">
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

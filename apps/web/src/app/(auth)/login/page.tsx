@@ -91,7 +91,6 @@ export default function LoginPage() {
   const [pwdHint, setPwdHint] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
 
   const [toastOpen, setToastOpen] = useState(false);
@@ -188,15 +187,33 @@ export default function LoginPage() {
             <h1 className="auth-title">{t("auth.loginTitle")}</h1>
             <p className="auth-subtitle">{t("auth.loginSubtitle")}</p>
 
-            <div className="auth-form">
+            <form
+              className="auth-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void onSubmit();
+              }}
+            >
+              {/* Fake hidden inputs to absorb initial browser autofill and keep fields empty on load */}
+              <div style={{ display: "none" }} aria-hidden="true">
+                <input type="text" name="fake-email" tabIndex={-1} autoComplete="username" />
+                <input
+                  type="password"
+                  name="fake-password"
+                  tabIndex={-1}
+                  autoComplete="current-password"
+                />
+              </div>
+
               <div className="auth-field">
                 <label htmlFor="email" className="auth-label">
                   {t("auth.email")}
                 </label>
                 <input
                   id="email"
-                  name="username"
+                  name="email"
                   className="app-input"
+                  type="email"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -206,6 +223,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   inputMode="email"
                   placeholder="name@example.com"
+                  required
                 />
                 {emailHint ? (
                   <div className="mt-2 text-xs text-red-300">{emailHint}</div>
@@ -224,7 +242,7 @@ export default function LoginPage() {
                 <div className="auth-password-wrap">
                   <input
                     id="password"
-                    name="current-password"
+                    name="password"
                     className="app-input auth-password-input"
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -233,8 +251,9 @@ export default function LoginPage() {
                       setPwdHint(null);
                       setSubmitError(null);
                     }}
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
+                    required
                   />
                   <button
                     type="button"
@@ -264,8 +283,7 @@ export default function LoginPage() {
               <button
                 className="app-btn-primary auth-submit-btn"
                 disabled={submitting}
-                onClick={onSubmit}
-                type="button"
+                type="submit"
               >
                 {submitting ? t("auth.loading") : t("auth.login")}
               </button>
@@ -276,7 +294,7 @@ export default function LoginPage() {
                   {t("auth.register")}
                 </Link>
               </div>
-            </div>
+            </form>
           </div>
         </div>
 

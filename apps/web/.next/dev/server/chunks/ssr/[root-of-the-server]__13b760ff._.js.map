@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///D:/mydtu/mydtu-assistant/apps/web/src/app/page.tsx"],"sourcesContent":["// apps/web/src/app/page.tsx\nimport { redirect } from \"next/navigation\";\n\nexport default function Home() {\n  redirect(\"/dashboard\");\n}"],"names":[],"mappings":";;;;AAAA,4BAA4B;AAC5B;AAAA;;AAEe,SAAS;IACtB,IAAA,gUAAQ,EAAC;AACX"}}]
-}

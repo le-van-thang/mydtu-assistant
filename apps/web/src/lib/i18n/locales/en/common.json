@@ -46,7 +46,15 @@
     "quickHintExamSearchMobile": "to quickly search by course, student ID, class, and exam date.",
     "closeMobileSidebar": "Close menu",
     "closeNavigationMenu": "Close navigation menu",
-    "openNavigationMenu": "Open navigation menu"
+    "openNavigationMenu": "Open navigation menu",
+    "resetFilters": "Reset filters",
+    "yes": "Yes",
+    "no": "No",
+    "noDataYet": "Not available yet",
+    "success": "Success",
+    "partial": "Partial",
+    "failed": "Failed",
+    "none": "None"
   },
   "shell": {
     "userFallback": "User",
@@ -69,7 +77,8 @@
     "profile": "Profile",
     "exams": "Exam schedule",
     "examTentative": "Tentative exams",
-    "examOfficial": "Official exams"
+    "examOfficial": "Official exams",
+    "rateflow": "⚡ Rate Fast"
   },
   "status": {
     "title": "Data status",
@@ -115,7 +124,10 @@
       "syncExtension": "Sync from Extension",
       "reloadData": "Reload data",
       "connectMyDtu": "Connect MYDTU",
-      "checkConnection": "Check connection"
+      "checkConnection": "Check connection",
+      "enableNotifications": "🔔 Enable reminders",
+      "exportExcel": "Export Excel (XLS)",
+      "exportHtml": "HTML Report"
     },
     "sync": {
       "scanning": "Scanning multiple weeks from MYDTU, please wait...",
@@ -134,7 +146,9 @@
       "importFailedWithStatus": "Import failed ({{status}}).",
       "unsupportedScope": "Unsupported scope: {{scope}}",
       "success": "Synced successfully {{totalItems}} classes across {{totalWeeks}} weeks.",
-      "successSimple": "Sync completed."
+      "successSimple": "Sync completed.",
+      "guideTitle": "Sync guide",
+      "guideDesc": "Step 1: Connect MYDTU. Step 2: Check connection. Step 3: When connected, click \"Sync from Extension\" above to fetch your timetable."
     },
     "summary": {
       "todayNotice": "Today's notice",
@@ -152,7 +166,8 @@
     },
     "filters": {
       "allCampuses": "All campuses",
-      "searchPlaceholder": "Filter by course code or course name"
+      "searchPlaceholder": "Filter by course code or course name",
+      "allCourses": "All courses"
     },
     "todayCard": {
       "title": "Today"
@@ -223,13 +238,134 @@
       "campusLabel": "Campus: {{value}}",
       "weekLabel": "Week: {{value}}",
       "todayNoClass": "No classes today."
+    },
+    "export": {
+      "title": "TIMETABLE — MYDTU ASSISTANT",
+      "stt": "#",
+      "date": "Date",
+      "weekday": "Day",
+      "time": "Time",
+      "course": "Course code",
+      "courseName": "Course name",
+      "roomMode": "Room",
+      "campus": "Campus",
+      "weekLabel": "Week / Semester",
+      "mode": "Delivery",
+      "online": "Online",
+      "onsite": "On-site",
+      "exportedFrom": "Exported from MYDTU Assistant",
+      "events": "{{count}} class events"
     }
   },
   "transcript": {
     "title": "Transcript",
     "subtitle": "Grades and GPA by term.",
     "section": "Grade summary",
-    "placeholder": "Transcript table (demo)."
+    "placeholder": "Transcript table (demo).",
+    "loading": "Loading transcript data...",
+    "emptyFiltered": "No data matches the current filters.",
+    "courseCount": "{{count}} courses",
+    "quickOverview": "Quick overview",
+    "notice": {
+      "title": "Sync guide",
+      "steps": "Step 1: Click \"Open MYDTU Transcript\". Step 2: Sign in if needed. Step 3: Click \"Check connection\". Step 4: Return here and click \"Sync transcript\"."
+    },
+    "reload": {
+      "title": "Reloading data",
+      "message": "Refreshing transcript from the current database snapshot.",
+      "button": "Reload data"
+    },
+    "toast": {
+      "syncSuccessTitle": "Transcript synced successfully",
+      "syncSuccessMessage": "Latest transcript data has been updated from the extension."
+    },
+    "search": {
+      "label": "Search courses",
+      "placeholder": "Search by course code, class code, course name, delivery mode..."
+    },
+    "filter": {
+      "academicYear": "Academic year",
+      "allAcademicYears": "All academic years",
+      "semesterString": "Filter by semester",
+      "allSemesters": "All semesters",
+      "status": "Course status",
+      "allStatuses": "All statuses",
+      "creditMode": "Credit mode",
+      "counted": "Counted toward GPA",
+      "passFail": "P / P(F)",
+      "pending": "Pending grade"
+    },
+    "stat": {
+      "visibleRows": "Visible rows",
+      "visibleSemesters": "Visible semesters",
+      "lastSync": "Last sync"
+    },
+    "status": {
+      "passed": "Passed",
+      "failed": "Not passed",
+      "unknown": "Unknown"
+    },
+    "table": {
+      "courseCode": "Course code",
+      "classCode": "Class code",
+      "courseName": "Course name",
+      "method": "Delivery",
+      "credits": "Credits",
+      "score10": "Score (10)",
+      "letter": "Letter grade",
+      "gpa4": "GPA (4)",
+      "cumulative": "Cumulative",
+      "status": "Status",
+      "detail": "Detailed transcript",
+      "detailButton": "View detailed transcript"
+    },
+    "sync": {
+      "status": "Sync status",
+      "last": "Last sync"
+    },
+    "quick": {
+      "gpa4": "Current GPA (4.0)",
+      "countedCredits": "Credits counted",
+      "passedCountedCredits": "Passed credits counted",
+      "passFailCredits": "P / P(F) credits",
+      "pendingCredits": "Pending credits",
+      "registeredCredits": "Total visible credits",
+      "passedCourses": "Passed courses",
+      "failedCourses": "Not-passed courses",
+      "semesters": "Semesters",
+      "rows": "Transcript rows"
+    },
+    "detail": {
+      "titleSmall": "Detailed transcript",
+      "term": "Semester",
+      "classInfo": "Class information",
+      "evaluation": "Course evaluation",
+      "hasGrade": "Has grade",
+      "semesterText": "Semester string",
+      "note": "Note",
+      "noteText": "This popup shows data saved from the overview transcript. Detailed per-subject transcript sync will be available in a future update."
+    },
+    "connect": {
+      "connected": "Connected",
+      "checking": "Checking",
+      "notConnected": "Not connected",
+      "slow": "Slow response",
+      "stale": "Extension outdated",
+      "error": "Error",
+      "idle": "Not checked yet"
+    },
+    "extension": {
+      "stale": "The extension was reloaded or updated. Please reload the extension in Chrome and hard-refresh this page.",
+      "opened": "MYDTU transcript page opened. Sign in if needed, then click Check connection.",
+      "opening": "Opening...",
+      "openButton": "Open MYDTU Transcript",
+      "checkOk": "Connection check successful.",
+      "notConnected": "Not connected.",
+      "slowReply": "Extension responded too slowly.",
+      "checkingButton": "Checking...",
+      "checkButton": "Check connection",
+      "statusLabel": "Connection status"
+    }
   },
   "warnings": {
     "title": "Warnings",
@@ -599,6 +735,77 @@
       "birthDateRequired": "Birth date is required.",
       "loginFailed": "Login failed.",
       "registerFailed": "Registration failed."
+    }
+  },
+  "transcriptDetail": {
+    "title": "Detailed transcript",
+    "subtitle": "Track component scores, weight distribution, and grading progress for each course class.",
+    "reload": "Reload data",
+    "loading": "Loading transcript detail data...",
+    "empty": "No matching transcript detail data yet.",
+    "notice": {
+      "title": "Sync note",
+      "steps": "Step 1: click \"Connect MYDTU\". Step 2: sign in if needed. Step 3: return to the app and click \"Sync transcript detail\"."
+    },
+    "search": {
+      "label": "Search",
+      "placeholder": "Search by course code, class code, course name, or score component..."
+    },
+    "filter": {
+      "semester": "Filter semester",
+      "classCode": "Filter class code"
+    },
+    "stat": {
+      "rows": "Component rows",
+      "classes": "Course classes",
+      "semesters": "Semesters",
+      "lastSync": "Last sync"
+    },
+    "class": {
+      "totalWeight": "Total %",
+      "components": "Components"
+    },
+    "table": {
+      "component": "Component",
+      "score1": "Attempt 1",
+      "score2": "Attempt 2",
+      "scale": "Scale",
+      "weight": "% Weight",
+      "max": "% Max",
+      "contribution": "Contribution"
+    },
+    "sync": {
+      "button": "Sync transcript detail",
+      "loading": "Syncing...",
+      "starting": "Starting the batch sync flow from the transcript detail page...",
+      "keepTabOpen": "Keep the MYDTU transcript detail tab open until the sync finishes.",
+      "summary": "Scanned {{scanned}}/{{requested}} semesters, saved {{inserted}} component rows, skipped {{skipped}} unmatched rows, and had detail page fetch failures in {{detailFailures}} classes.",
+      "successAll": "All requested semesters were processed successfully.",
+      "unknownSemester": "Unknown semester",
+      "defaultSemesterWarning": "Please review this semester again on MYDTU.",
+      "errors": {
+        "timeout": "The sync took too long. Keep the MYDTU tab open and try again.",
+        "extensionReload": "The extension is not ready or was reloaded. Open the MYDTU page again and retry.",
+        "channelClosed": "The sync channel closed too early. The flow now uses a job-based model, so keep the MYDTU tab open and retry.",
+        "invalidPayload": "The data scraped from MYDTU has an invalid structure. If this repeats, the source detail page still needs inspection.",
+        "unknown": "Transcript detail sync failed."
+      }
+    },
+    "extension": {
+      "title": "Connect the MYDTU source page",
+      "helperPrimary": "Use this first if the old sync button often stalls or fails.",
+      "helperSecondary": "After the portal finishes loading, do not close the MYDTU tab during sync.",
+      "connectingMessage": "Opening the MYDTU transcript detail page. Sign in there if needed, then return here to sync.",
+      "openFailed": "Could not open the MYDTU transcript detail page.",
+      "opened": "MYDTU is ready. Keep that tab open, make sure the semester filters and table render correctly, then click Sync transcript detail here.",
+      "errorMessage": "Failed to connect to MYDTU.",
+      "ready": "Ready to sync",
+      "opening": "Connecting",
+      "error": "Connection error",
+      "idle": "Not connected",
+      "openingButton": "Connecting to MYDTU...",
+      "openButton": "Connect MYDTU",
+      "statusLabel": "Status"
     }
   }
 }

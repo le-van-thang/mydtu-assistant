@@ -89,14 +89,10 @@ export default function SyncTranscriptButton() {
             fontWeight: 700,
           };
 
-  const buttonStyle = loading
-    ? {
-        background: "linear-gradient(180deg, #ef4444 0%, #dc2626 100%)",
-        borderColor: "transparent",
-        color: "#ffffff",
-        boxShadow: "0 12px 24px rgba(239, 68, 68, 0.24)",
-      }
-    : undefined;
+  const buttonBaseStyle = `relative overflow-hidden group rounded-2xl px-6 py-2.5 text-[14px] font-black shadow-lg transition-all flex items-center justify-center gap-2 text-white w-full sm:w-auto`;
+  const btnClass = loading 
+    ? `${buttonBaseStyle} bg-gradient-to-r from-red-500 to-red-600 shadow-red-500/30 opacity-90 cursor-wait`
+    : `${buttonBaseStyle} bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 active:translate-y-0`;
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -104,12 +100,20 @@ export default function SyncTranscriptButton() {
         type="button"
         onClick={onSync}
         disabled={loading}
-        className="app-btn-primary rounded-2xl px-4 py-2 text-sm font-semibold transition disabled:opacity-60"
-        style={buttonStyle}
+        className={btnClass}
       >
-        {loading
-          ? t("transcript.sync.loading", "Đang đồng bộ...")
-          : t("transcript.sync.button", "Sync bảng điểm")}
+        {!loading && <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />}
+        {loading ? (
+          <>
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <span>{t("transcript.sync.loading", "Đang đồng bộ...")}</span>
+          </>
+        ) : (
+          <>
+            <span className="text-lg group-hover:scale-110 transition-transform">⚡</span>
+            <span>{t("transcript.sync.button", "Đồng bộ bảng điểm")}</span>
+          </>
+        )}
       </button>
 
       {msg ? (

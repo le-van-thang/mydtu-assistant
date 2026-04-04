@@ -9,6 +9,7 @@ node_modules/
 dist/
 build/
 coverage/
+apps/web/.next/
 
 # =====================
 # Environment variables
@@ -48,3 +49,26 @@ apps/api/prisma/dev.db
 # Test artifacts
 # =====================
 *.snap
+
+# =====================
+# Temporary / scratch files
+# =====================
+*.tmp
+.tmp_*.json
+fix_*.js
+fix_*.ts
+find_*.js
+update_*.js
+test.js
+test-*.js
+test-*.ts
+export-*.ts
+run-*.bat
+run.js
+*.tsbuildinfo
+
+# =====================
+# Log files
+# =====================
+*.log
+sync-error.log

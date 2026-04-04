@@ -256,8 +256,8 @@ export default function SyncTimetableButton() {
         className="app-btn-primary rounded-2xl px-4 py-2 text-sm font-semibold disabled:opacity-60"
       >
         {loading
-          ? t("timetable.sync.syncing")
-          : t("timetable.actions.syncExtension")}
+          ? t("timetable.sync.syncing", "Đang đồng bộ...")
+          : t("timetable.actions.syncExtension", "Đồng bộ lịch học")}
       </button>
 
       {msg ? (

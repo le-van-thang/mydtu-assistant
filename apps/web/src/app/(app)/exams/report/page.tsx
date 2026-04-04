@@ -326,7 +326,7 @@ function StudentTable({
 }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-[var(--border-main)]">
-      <table className="min-w-[1080px] w-full text-sm">
+      <table className="min-w-[800px] w-full text-sm">
         <thead>
           <tr className="bg-[var(--bg-soft)] text-left">
             <th className="px-4 py-3 font-semibold">STT</th>
@@ -339,9 +339,6 @@ function StudentTable({
             </th>
             <th className="px-4 py-3 font-semibold">
               {isVi ? "Lớp sinh hoạt" : "Student class"}
-            </th>
-            <th className="px-4 py-3 font-semibold">
-              {isVi ? "Ngày sinh" : "Birth date"}
             </th>
             <th className="px-4 py-3 font-semibold">
               {isVi ? "Phòng" : "Room"}
@@ -362,7 +359,6 @@ function StudentTable({
               <td className="px-4 py-3">{record.studentName || "—"}</td>
               <td className="px-4 py-3">{record.classCourse || "—"}</td>
               <td className="px-4 py-3">{record.classStudent || "—"}</td>
-              <td className="px-4 py-3">{record.birthDate || "—"}</td>
               <td className="px-4 py-3">
                 {sanitizeVisualText(record.room) || "—"}
               </td>
@@ -401,7 +397,6 @@ export default function ExamReportPage() {
   const [sessionFilter, setSessionFilter] = useState("all");
   const [classFilter, setClassFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("session");
-  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -575,19 +570,98 @@ export default function ExamReportPage() {
   const detailUrl = records[0]?.detailUrl || "";
   const attachmentUrl = records[0]?.attachmentUrl || null;
 
-  async function handleCopyStudentIds(session: ExamSessionSummary) {
-    const ids = Array.from(
-      new Set(session.records.map((x) => x.studentId).filter(Boolean)),
-    ).join("\n");
-    if (!ids) return;
+  function escapeHtml(value: unknown) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
 
-    try {
-      await navigator.clipboard.writeText(ids);
-      setCopiedSessionId(session.id);
-      window.setTimeout(() => setCopiedSessionId(null), 1600);
-    } catch {
-      setCopiedSessionId(null);
-    }
+  function handleExportExcel(session: ExamSessionSummary) {
+    const htmlLines: string[] = [];
+    htmlLines.push(
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">',
+    );
+    htmlLines.push('<head><meta charset="utf-8" /><style>');
+    htmlLines.push(
+      'table, th, td { border: 1px solid #bfcbda; border-collapse: collapse; font-family: "Times New Roman", Times, serif; font-size: 14pt; }',
+    );
+    htmlLines.push(
+      "th { background-color: #0f172a; color: #ffffff; font-weight: bold; }",
+    );
+    htmlLines.push("th, td { padding: 6px 12px; }");
+    htmlLines.push(
+      ".header-title { font-size: 20pt; font-weight: bold; color: #1e3a8a; text-align: center; }",
+    );
+    htmlLines.push(
+      ".meta-info { font-size: 14pt; font-weight: bold; color: #000; text-align: left; }",
+    );
+    htmlLines.push("</style></head><body>");
+    htmlLines.push("<table>");
+
+    // Header block
+    htmlLines.push(
+      `<tr><td colspan="8" class="header-title">DANH SÁCH SINH VIÊN THI</td></tr>`,
+    );
+    htmlLines.push(
+      `<tr><td colspan="8" class="meta-info">Học phần: ${escapeHtml(session.courseCode)} ${escapeHtml(session.courseName || "")}</td></tr>`,
+    );
+    htmlLines.push(
+      `<tr><td colspan="8" class="meta-info">Thời gian: ${formatDate(session.examDate, locale)} / ${escapeHtml(session.startTime || "")}</td></tr>`,
+    );
+    htmlLines.push(
+      `<tr><td colspan="8" class="meta-info">Phòng thi: ${escapeHtml(session.room || "")} (${escapeHtml(session.campus || "")})</td></tr>`,
+    );
+    htmlLines.push(`<tr><td colspan="8"></td></tr>`);
+
+    // Table Headers
+    htmlLines.push("<tr>");
+    htmlLines.push("<th>STT</th>");
+    htmlLines.push("<th>Mã sinh viên</th>");
+    htmlLines.push("<th>Họ tên</th>");
+    htmlLines.push("<th>Lớp môn học</th>");
+    htmlLines.push("<th>Lớp sinh hoạt</th>");
+    htmlLines.push("<th>Ngày sinh</th>");
+    htmlLines.push("<th>Phòng</th>");
+    htmlLines.push("<th>Ghi chú</th>");
+    htmlLines.push("</tr>");
+
+    // Data
+    session.records.forEach((record, idx) => {
+      htmlLines.push("<tr>");
+      htmlLines.push(`<td style="text-align: center">${idx + 1}</td>`);
+      // force text format for student ID to prevent scientific notation in Excel
+      htmlLines.push(
+        `<td style="mso-number-format:'\\@';">${escapeHtml(record.studentId || "")}</td>`,
+      );
+      htmlLines.push(`<td>${escapeHtml(record.studentName || "")}</td>`);
+      htmlLines.push(`<td>${escapeHtml(record.classCourse || "")}</td>`);
+      htmlLines.push(`<td>${escapeHtml(record.classStudent || "")}</td>`);
+      htmlLines.push(`<td>${escapeHtml(record.birthDate || "")}</td>`);
+      htmlLines.push(`<td>${escapeHtml(record.room || "")}</td>`);
+      htmlLines.push(`<td></td>`);
+      htmlLines.push("</tr>");
+    });
+
+    htmlLines.push("</table></body></html>");
+
+    const blob = new Blob(["\ufeff", htmlLines.join("\n")], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+    const fileDate = new Date()
+      .toLocaleDateString(locale)
+      .replace(/[^\d]+/g, "-");
+    const safeCode = (session.courseCode || "cathi").replace(/[^\w-]+/g, "-");
+    const filename = `Danh-sach-ca-thi-${safeCode}-${fileDate}.xls`;
+
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -890,52 +964,23 @@ export default function ExamReportPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleCopyStudentIds(session)}
-                      className="rounded-xl border border-violet-400/15 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-200 transition hover:bg-violet-500/16"
+                      onClick={() => handleExportExcel(session)}
+                      className="rounded-xl border border-[var(--success)]/20 bg-[var(--success)]/10 px-3 py-2 text-xs font-medium text-[var(--success)] transition hover:-translate-y-[1px] hover:bg-[var(--success)]/15"
                     >
-                      {copiedSessionId === session.id
-                        ? isVi
-                          ? "Đã copy MSSV"
-                          : "Student IDs copied"
-                        : isVi
-                          ? "Copy danh sách MSSV"
-                          : "Copy student IDs"}
+                      {isVi ? "Tải File Excel (.xls)" : "Download Excel (.xls)"}
                     </button>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4 p-4 md:p-5">
-                <ClassGroupSummary records={session.records} isVi={isVi} />
-
-                <details className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)]">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {isVi
-                          ? "Mở bảng sinh viên đầy đủ"
-                          : "Open full student table"}
-                      </div>
-                      <div className="text-xs app-text-muted">
-                        {isVi
-                          ? "Giữ bảng chi tiết ở dạng gọn, chỉ mở khi cần."
-                          : "Keep the detailed table collapsed until needed."}
-                      </div>
-                    </div>
-
-                    <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
-                      {session.records.length}
-                    </span>
-                  </summary>
-
-                  <div className="border-t border-[var(--border-main)] p-4">
-                    <StudentTable
-                      records={session.records}
-                      locale={locale}
-                      isVi={isVi}
-                    />
-                  </div>
-                </details>
+                <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                  <StudentTable
+                    records={session.records}
+                    locale={locale}
+                    isVi={isVi}
+                  />
+                </div>
               </div>
             </section>
           ))
@@ -1005,42 +1050,23 @@ export default function ExamReportPage() {
                           ? `${session.studentCount} sinh viên`
                           : `${session.studentCount} students`}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => handleExportExcel(session)}
+                        className="ml-2 inline-flex rounded-xl border border-[var(--success)]/20 bg-[var(--success)]/10 px-3 py-1 text-xs font-medium text-[var(--success)] transition hover:-translate-y-[1px] hover:bg-[var(--success)]/15"
+                      >
+                        {isVi ? "Tải Excel (.xls)" : "Download Excel (.xls)"}
+                      </button>
                     </div>
 
                     <div className="space-y-4">
-                      <ClassGroupSummary
-                        records={session.records}
-                        isVi={isVi}
-                      />
-
-                      <details className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55">
-                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
-                          <div>
-                            <div className="text-sm font-semibold">
-                              {isVi
-                                ? "Mở bảng sinh viên của phiên này"
-                                : "Open student table for this session"}
-                            </div>
-                            <div className="text-xs app-text-muted">
-                              {isVi
-                                ? "Tách theo từng phiên để dễ quét hơn."
-                                : "Separated per session for easier scanning."}
-                            </div>
-                          </div>
-
-                          <span className="inline-flex rounded-full app-pill px-3 py-1 text-xs font-medium">
-                            {session.records.length}
-                          </span>
-                        </summary>
-
-                        <div className="border-t border-[var(--border-main)] p-4">
-                          <StudentTable
-                            records={session.records}
-                            locale={locale}
-                            isVi={isVi}
-                          />
-                        </div>
-                      </details>
+                      <div className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 p-4 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                        <StudentTable
+                          records={session.records}
+                          locale={locale}
+                          isVi={isVi}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

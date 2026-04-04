@@ -34,6 +34,7 @@ import {
   openExamPageInExtension,
   requestExamSync,
 } from "@/lib/extensionBridge";
+import Skeleton from "@/components/ui/Skeleton";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -83,67 +84,114 @@ type AppToast = {
 };
 
 const BTN_NEUTRAL =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#cfd8e6] bg-white px-4 text-sm font-bold text-[#0f172a] shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:-translate-y-[1px] hover:border-[#b8c4d8] hover:bg-[#f8fbff]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card)] px-5 text-sm font-bold text-[var(--text-main)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--accent)]/50 hover:text-[var(--accent)] active:scale-95";
 
 const BTN_SOFT_INFO =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#bfd3ff] bg-[#edf4ff] px-4 text-sm font-bold text-[#1d4ed8] shadow-[0_10px_24px_rgba(37,99,235,0.10)] transition hover:-translate-y-[1px] hover:bg-[#e3efff]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 px-5 text-sm font-bold text-blue-600 dark:text-blue-400 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-blue-500/20 active:scale-95";
 
 const BTN_SOFT_SUCCESS =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#b7ead9] bg-[#ecfdf5] px-4 text-sm font-bold text-[#047857] shadow-[0_10px_24px_rgba(5,150,105,0.10)] transition hover:-translate-y-[1px] hover:bg-[#dff8ee]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-5 text-sm font-bold text-emerald-600 dark:text-emerald-400 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-emerald-500/20 active:scale-95";
 
 const BTN_SOFT_WARNING =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[#f5d7a6] bg-[#fff7e8] px-4 text-sm font-bold text-[#b45309] shadow-[0_10px_24px_rgba(217,119,6,0.10)] transition hover:-translate-y-[1px] hover:bg-[#fff1d6]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 text-sm font-bold text-amber-600 dark:text-amber-400 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-amber-500/20 active:scale-95";
 
 const BTN_PRIMARY =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#5b95ff_0%,#2563eb_100%)] px-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.24)] transition hover:-translate-y-[1px] hover:brightness-105";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-blue-500/40 active:scale-95";
 
 const BTN_PRIMARY_ACTIVE =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#6ea3ff_0%,#3b82f6_100%)] px-4 text-sm font-bold text-white shadow-[0_16px_34px_rgba(59,130,246,0.28)] transition";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-gradient-to-r from-indigo-500 to-blue-500 px-6 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-indigo-500/50 active:scale-95";
 
 const BTN_DANGER =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-[linear-gradient(180deg,#ef4444_0%,#dc2626_100%)] px-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(239,68,68,0.22)] transition hover:-translate-y-[1px] hover:brightness-105";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-gradient-to-r from-red-500 to-rose-600 px-6 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-red-500/40 active:scale-95";
 
 const BTN_DETAIL_LINK =
-  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border-main)] bg-[rgba(255,255,255,0.035)] px-4 text-sm font-bold text-[var(--text-main)] shadow-[0_8px_20px_rgba(2,8,23,0.16)] transition hover:-translate-y-[1px] hover:border-[var(--border-strong)] hover:bg-[rgba(255,255,255,0.06)]";
+  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--border-main)] bg-[var(--bg-card)] px-4 text-sm font-bold text-[var(--text-main)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95";
 
 const BTN_DOWNLOAD_LINK =
-  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 text-sm font-bold text-[var(--accent)] shadow-[0_8px_20px_rgba(59,130,246,0.14)] transition hover:-translate-y-[1px] hover:bg-[var(--accent)]/14";
+  "inline-flex h-10 items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 text-sm font-bold text-[var(--accent)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--accent)]/20 active:scale-95";
 
 const EXAM_NOTIFY_ENABLED_KEY = "exam-notify-enabled";
-function ActionHint({ title, items }: { title?: string; items: string[] }) {
+
+function ExpandableHint({ title, children, isWarning }: { title: string; children: React.ReactNode; isWarning?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const toneClass = isWarning ? "text-[var(--warning)]" : "text-[var(--accent)]";
+  
   return (
-    <details className="group rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
-        <div className="min-w-0">
-          <div className="text-[12px] font-bold uppercase tracking-[0.04em] text-[var(--text-soft)]">
-            {title || "Quick guide"}
+    <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] transition-all hover:border-[var(--accent)]/40">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold ${toneClass} hover:bg-[var(--bg-card-strong)] transition-colors`}
+      >
+        <span className="flex items-center gap-2">
+          {isWarning ? (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          ) : (
+             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>
+          )}
+          {title}
+        </span>
+        <svg
+          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : "rotate-0"}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-[var(--border-main)] px-4 py-4 text-sm app-text-muted leading-relaxed">
+            {children}
           </div>
-          <div className="mt-1 text-xs text-[var(--text-muted)]">
-            {items.length} {items.length === 1 ? "item" : "items"}
-          </div>
-        </div>
-
-        <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] text-[var(--text-muted)] transition group-open:rotate-180">
-          <ChevronDownIcon />
-        </div>
-      </summary>
-
-      <div className="border-t border-[var(--border-main)] px-4 py-4">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {items.map((item, index) => (
-            <div
-              key={`${title || "hint"}-${index}`}
-              className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card-strong)] px-4 py-3 text-[13px] leading-5 text-[var(--text-muted)] shadow-sm"
-            >
-              <div className="mb-2 inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[var(--accent)]/12 px-2 text-[11px] font-bold text-[var(--accent)]">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-              <div>{item}</div>
-            </div>
-          ))}
         </div>
       </div>
-    </details>
+    </div>
+  );
+}
+
+
+function StatsSkeleton() {
+  return (
+    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="app-panel p-3.5">
+          <Skeleton className="h-3 w-20 mb-2" />
+          <Skeleton className="h-8 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExamsSkeleton() {
+  return (
+    <div className="space-y-6">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="app-section p-5">
+          <div className="flex items-center justify-between mb-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((__, j) => (
+              <div key={j} className="flex gap-4 p-4 border border-[var(--border-main)] rounded-2xl">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -1205,17 +1253,34 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
         setResolvedUserId(uid);
 
         const meta = readExamMeta();
-        const permission = await ensureNotificationPermission();
-        if (cancelled) return;
-
-        setNotifyPermission(permission);
         setLastSyncedAt(meta.lastSyncedAt);
         setLastNoticeCount(meta.lastNoticeCount);
+
+        // --- STEP 1: LOAD CACHE IMMEDIATELY ---
+        const cachedRecords = await readExamRecords();
+        if (cancelled) return;
+
+        if (cachedRecords.length > 0) {
+          setRecords(cachedRecords);
+          setLoading(false); // Stop blocking UI if we have cache
+          setBannerTone("info");
+          setBannerText(
+            isVi 
+              ? "Đang nạp dữ liệu từ bộ nhớ tạm và cập nhật mới nhất..." 
+              : "Loading from cache and refreshing latest..."
+          );
+        }
+
+        const permission = await ensureNotificationPermission();
+        if (cancelled) return;
+        setNotifyPermission(permission);
+        
         const savedNotifyEnabled = readExamNotifyEnabled();
         setNotificationsEnabled(
           permission === "granted" ? savedNotifyEnabled : false,
         );
 
+        // --- STEP 2: FETCH FRESH DATA FROM DB ---
         try {
           const dbRecords = await fetchExamsFromDb({ userId: uid });
           if (cancelled) return;
@@ -1238,27 +1303,21 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
             );
           }
         } catch {
-          const cachedRecords = await readExamRecords();
-          if (cancelled) return;
-
-          setRecords(cachedRecords);
-
-          if (!cachedRecords.length) {
-            setBannerTone("warning");
-            setBannerText(t("exams.sync.cacheFallback"));
-          } else {
+          // If DB fails but we already have cache, just show a warning
+          if (records.length > 0) {
             setBannerTone("warning");
             setBannerText(
-              t("exams.sync.cachedReady", {
-                count: cachedRecords.length,
-                time: meta.lastSyncedAt
-                  ? formatDateTime(meta.lastSyncedAt, locale)
-                  : t("exams.sync.noSyncYet"),
-              }),
+              isVi 
+                ? "Không thể làm mới từ máy chủ. Đang hiển thị dữ liệu cũ." 
+                : "Cannot refresh from server. Showing offline data."
             );
+          } else {
+            // Truly failed (no cache, no DB)
+            setBannerTone("warning");
+            setBannerText(t("exams.sync.cacheFallback"));
           }
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
           setBannerTone("warning");
           setBannerText(t("exams.sync.cacheFallback"));
@@ -1407,7 +1466,28 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
     }
 
     const entries = Array.from(map.entries());
-    entries.sort((a, b) => a[0].localeCompare(b[0]));
+    
+    if (groupMode === "date") {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      
+      entries.sort((a, b) => {
+        if (a[0] === "unknown") return 1;
+        if (b[0] === "unknown") return -1;
+        
+        const aUpcoming = a[0] >= todayStr;
+        const bUpcoming = b[0] >= todayStr;
+        
+        if (aUpcoming && !bUpcoming) return -1;
+        if (!aUpcoming && bUpcoming) return 1;
+        
+        if (aUpcoming) return a[0].localeCompare(b[0]);
+        return b[0].localeCompare(a[0]);
+      });
+    } else {
+      entries.sort((a, b) => a[0].localeCompare(b[0]));
+    }
+    
     return entries;
   }, [filteredSessions, groupMode]);
 
@@ -2145,103 +2225,109 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                 </button>
               </div>
 
-              <ActionHint
-                title={isVi ? "Giải thích nhanh các nút" : "Quick action guide"}
-                items={
-                  isVi
-                    ? [
-                        "Mở cổng đào tạo: mở đúng trang nguồn để extension đứng sẵn ở chỗ cần lấy dữ liệu.",
-                        "Đồng bộ lịch thi: lấy dữ liệu mới nhất từ cổng đào tạo và cập nhật lại hệ thống.",
-                        "Bật thông báo: báo khi có lịch thi mới sau những lần đồng bộ tiếp theo.",
-                        "Xuất báo cáo: tải file Excel từ chính dữ liệu bạn đang lọc trên màn hình.",
-                      ]
-                    : [
-                        "Open portal: open the source exam page so the extension is ready.",
-                        "Sync exams: fetch the latest schedules from the portal and update the app.",
-                        "Turn on notifications: alert you when new exam schedules appear after later syncs.",
-                        "Export report: download an Excel file from the data currently filtered on screen.",
-                      ]
-                }
-              />
+              <ExpandableHint
+                title={isVi ? "Giải thích nhanh các nút & Lưu ý đồng bộ" : "Quick action guide & Sync note"}
+                isWarning={true}
+              >
+                <div className="space-y-4">
+                  <p>
+                    <strong>Cơ chế đồng bộ:</strong> {guideText}
+                  </p>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {isVi ? (
+                      <>
+                        <li><strong>Mở cổng đào tạo:</strong> mở đúng trang nguồn để extension chèn code đứng sẵn ở chỗ cần lấy dữ liệu.</li>
+                        <li><strong>Đồng bộ lịch thi:</strong> bắt đầu quá trình trích xuất dữ liệu mới nhất.</li>
+                        <li><strong>Bật thông báo:</strong> tự động cảnh báo khi có lịch thi mới nếu bạn lỡ quên.</li>
+                        <li><strong>Xuất báo cáo:</strong> tải form Excel theo sát những trường lọc bạn đang cài đặt trên màn hình.</li>
+                      </>
+                    ) : (
+                      <>
+                         <li><strong>Open portal:</strong> open source exam page.</li>
+                         <li><strong>Sync exams:</strong> trigger data extraction process.</li>
+                         <li><strong>Notifications:</strong> get real-time alerts.</li>
+                         <li><strong>Export report:</strong> generate robust spreadsheet layout manually.</li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+              </ExpandableHint>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[var(--warning)]/18 bg-[var(--warning)]/10 px-5 py-4 text-sm text-[var(--warning)]">
-            <div className="font-semibold">
-              {isVi ? "Lưu ý đồng bộ" : "Sync note"}
-            </div>
-            <div className="mt-1.5 opacity-95">{guideText}</div>
-          </div>
+          {loading && records.length === 0 ? (
+            <StatsSkeleton />
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.totalRecords")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold">{stats.total}</div>
+              </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.totalRecords")}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.visible")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold">{stats.visible}</div>
               </div>
-              <div className="mt-1.5 text-2xl font-bold">{stats.total}</div>
-            </div>
 
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.visible")}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {isVi ? "Phiên đang hiển thị" : "Visible sessions"}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold">
+                  {stats.visibleSessions}
+                </div>
               </div>
-              <div className="mt-1.5 text-2xl font-bold">{stats.visible}</div>
-            </div>
 
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {isVi ? "Phiên đang hiển thị" : "Visible sessions"}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.uniqueDays")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold">
+                  {stats.uniqueDays}
+                </div>
               </div>
-              <div className="mt-1.5 text-2xl font-bold">
-                {stats.visibleSessions}
-              </div>
-            </div>
 
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.uniqueDays")}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.courses")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold">
+                  {stats.uniqueCourses}
+                </div>
               </div>
-              <div className="mt-1.5 text-2xl font-bold">
-                {stats.uniqueDays}
-              </div>
-            </div>
 
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.courses")}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.students")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold">
+                  {stats.uniqueStudents}
+                </div>
               </div>
-              <div className="mt-1.5 text-2xl font-bold">
-                {stats.uniqueCourses}
-              </div>
-            </div>
 
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.students")}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.official")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold text-[var(--success)]">
+                  {stats.official}
+                </div>
               </div>
-              <div className="mt-1.5 text-2xl font-bold">
-                {stats.uniqueStudents}
-              </div>
-            </div>
 
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.official")}
-              </div>
-              <div className="mt-1.5 text-2xl font-bold text-[var(--success)]">
-                {stats.official}
-              </div>
-            </div>
-
-            <div className="app-panel p-3.5">
-              <div className="text-[11px] uppercase tracking-wide app-text-muted">
-                {t("exams.stats.tentative")}
-              </div>
-              <div className="mt-1.5 text-2xl font-bold text-[var(--warning)]">
-                {stats.tentative}
+              <div className="app-panel p-3.5">
+                <div className="text-[11px] uppercase tracking-wide app-text-muted">
+                  {t("exams.stats.tentative")}
+                </div>
+                <div className="mt-1.5 text-2xl font-bold text-[var(--warning)]">
+                  {stats.tentative}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div
             className={[
@@ -2722,7 +2808,20 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                 </div>
               </div>
 
-              {nextUpcomingSessions.length === 0 ? (
+              {loading && records.length === 0 ? (
+                <div className="mt-4 space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="app-panel p-4 space-y-3">
+                      <Skeleton className="h-5 w-1/3" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-8 w-20 rounded-full" />
+                        <Skeleton className="h-8 w-20 rounded-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : nextUpcomingSessions.length === 0 ? (
                 <div className="mt-4 rounded-xl app-soft p-4 text-sm app-text-muted">
                   {t("exams.insights.noTimeline")}
                 </div>
@@ -2806,20 +2905,6 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
                             {isVi ? "Mở hồ sơ lịch" : "Open roster view"}
                           </Link>
                         </div>
-
-                        <ActionHint
-                          items={
-                            isVi
-                              ? [
-                                  "Xem ca thi: chỉ xem riêng ca đang chọn, phù hợp khi cần tra nhanh sinh viên.",
-                                  "Mở hồ sơ lịch: mở cả file nguồn ở dạng web để xem đầy đủ hơn PDF hoặc Excel gốc.",
-                                ]
-                              : [
-                                  "View session: open only the selected session for quick student lookup.",
-                                  "Open roster view: open the full source workbook in a cleaner web form.",
-                                ]
-                          }
-                        />
                       </div>
                     </div>
                   ))}
@@ -2830,18 +2915,15 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
         </section>
 
         <section id="exam-detail-list" className="space-y-4">
-          <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-3 text-sm text-[var(--accent)]">
-            <div className="font-semibold">
-              {isVi ? "Danh sách phiên thi" : "Exam session list"}
+          <ExpandableHint title={isVi ? "Lưu ý thay đổi tính năng xuất Excel" : "Feature update on Excel exports"} isWarning={false}>
+            <div className="opacity-95 leading-relaxed tracking-wide">
+              {detailHintText}
             </div>
-            <div className="mt-1 opacity-90">
-              {isVi
-                ? "Đã đổi logic: không còn xuất Excel theo ca thi ở đây nữa. Thay vào đó là nút mở hồ sơ lịch đầy đủ cho cả file nguồn."
-                : "Session export is replaced by a full in-app roster view for the source workbook."}
-            </div>
-          </div>
+          </ExpandableHint>
 
-          {grouped.length === 0 ? (
+          {loading && records.length === 0 ? (
+            <ExamsSkeleton />
+          ) : grouped.length === 0 ? (
             <div className="app-section p-8 text-center">
               <div className="text-lg font-semibold">
                 {t("exams.empty.title")}
@@ -3041,8 +3123,8 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
 
                                   <div className="mt-2 max-w-[360px] text-[12px] leading-5 text-[var(--text-muted)]">
                                     {isVi
-                                      ? "Xem ca thi để tra nhanh theo 1 phiên. Mở hồ sơ lịch để xem toàn bộ file nguồn theo bố cục web rõ ràng hơn."
-                                      : "Use View session for one session only. Use Open roster view for the full source workbook in a cleaner layout."}
+                                      ? "Xem ca thi giờ ưu tiên tra cứu nhanh: có nhóm theo lớp, ô tìm kiếm nội bộ và danh sách sinh viên lọc ngay trong modal."
+                                      : "View session is now optimized for quick lookup with class grouping, in-modal search, and a filtered student list."}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3">
@@ -3456,3 +3538,4 @@ export default function ExamsPage({ userId: initialUserId }: ExamsPageProps) {
     </>
   );
 }
+

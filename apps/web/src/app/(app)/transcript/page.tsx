@@ -2,9 +2,16 @@
 
 import SyncTranscriptButton from "@/components/SyncTranscriptButton";
 import { fetchTranscript, type TranscriptItem } from "@/lib/transcript/api";
+import {
+  exportTranscriptCsv,
+  exportTranscriptHtml,
+  openPrintableTranscriptSlip,
+} from "@/lib/transcript/exporters";
+import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import TranscriptExtensionConnect from "./TranscriptExtensionConnect";
+import Skeleton from "@/components/ui/Skeleton";
 
 type MetaState = {
   lastSyncedAt?: string | null;
@@ -42,6 +49,44 @@ function QuickStatCard({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="mt-1 text-[15px] font-semibold">{value}</div>
+    </div>
+  );
+}
+
+
+function TranscriptStatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="app-card-strong rounded-xl px-3 py-3">
+          <Skeleton className="h-2 w-16 mb-2" />
+          <Skeleton className="h-5 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TranscriptTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="app-section p-4">
+          <div className="flex justify-between mb-4">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-5 w-20" />
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((__, j) => (
+              <div key={j} className="flex gap-4 items-center">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-16 ml-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -555,8 +600,52 @@ function TranscriptDetailModal({
   );
 }
 
+function ExpandableHint({ title, children, isWarning }: { title: string; children: React.ReactNode; isWarning?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const toneClass = isWarning ? "text-[var(--warning)]" : "text-[var(--accent)]";
+  
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] transition-all hover:border-[var(--accent)]/40 w-full mb-4">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold ${toneClass} hover:bg-[var(--bg-card-strong)] transition-colors`}
+      >
+        <span className="flex items-center gap-2">
+          {isWarning ? (
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          ) : (
+             <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>
+          )}
+          <span>{title}</span>
+        </span>
+        <svg
+          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : "rotate-0"} shrink-0`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-[var(--border-main)] px-4 py-4 text-sm app-text-muted leading-relaxed">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TranscriptPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [items, setItems] = useState<TranscriptItem[]>([]);
   const [meta, setMeta] = useState<MetaState>(null);
   const [loading, setLoading] = useState(true);
@@ -592,14 +681,36 @@ export default function TranscriptPage() {
     setLoading(true);
     setError(null);
 
+    // --- STEP 1: LOAD CACHE ---
+    try {
+      const cached = localStorage.getItem("mydtu:transcript-cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.items) {
+          setItems(parsed.items);
+          setMeta(parsed.meta);
+          setLoading(false); // Quick display
+        }
+      }
+    } catch {
+      // Ignore cache errors
+    }
+
+    // --- STEP 2: FETCH FRESH ---
     try {
       const data = await fetchTranscript();
       setItems(data.items || []);
       setMeta(data.meta ?? null);
+      
+      // Save cache
+      localStorage.setItem("mydtu:transcript-cache", JSON.stringify({
+        items: data.items,
+        meta: data.meta,
+      }));
     } catch (e) {
-      setItems([]);
-      setMeta(null);
-      setError(String((e as Error)?.message || e));
+      if (items.length === 0) {
+        setError(String((e as Error)?.message || e));
+      }
     } finally {
       setLoading(false);
     }
@@ -780,7 +891,82 @@ export default function TranscriptPage() {
           </div>
 
           <div className="flex flex-col items-start gap-2 lg:items-end">
-            <SyncTranscriptButton />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  openPrintableTranscriptSlip(
+                    filteredItems,
+                    {
+                      name: user?.name || t("common.defaultName", "Sinh viên"),
+                      id: user?.id || "",
+                      major: (user as any)?.schoolType || "",
+                    },
+                    {
+                      gpa4: overallGpa4,
+                      passedCredits: String(passedCountedCredits),
+                      totalCredits: String(registeredCredits),
+                    },
+                    i18n.language,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-2.5 text-[13px] font-bold shadow-sm hover:bg-[var(--bg-card)] hover:border-blue-500/30 hover:text-blue-600 dark:hover:text-blue-400 hover:-translate-y-0.5 transition-all group"
+                title={t("transcript.export.printTip", "In phiếu điểm A4 cực đẹp")}
+              >
+                <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-blue-500 transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="6 9 6 2 18 2 18 9"/>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                  <rect x="6" y="14" width="12" height="8"/>
+                </svg>
+                {t("transcript.export.print", "In phiếu điểm")}
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  exportTranscriptCsv(
+                    filteredItems,
+                    i18n.language,
+                    `bang-diem-${user?.id || "mydtu"}`,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-soft)] px-4 py-2.5 text-[13px] font-bold shadow-sm hover:bg-[var(--bg-card)] hover:border-emerald-500/30 hover:text-emerald-600 dark:hover:text-emerald-400 hover:-translate-y-0.5 transition-all group"
+                title={t("transcript.export.csv", "Xuất bản CSV")}
+              >
+                <svg className="w-4 h-4 text-[var(--text-muted)] group-hover:text-emerald-500 transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                CSV
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  exportTranscriptHtml(
+                    filteredItems,
+                    i18n.language,
+                    `bang-diem-${user?.id || "mydtu"}`,
+                  )
+                }
+                className="relative overflow-hidden group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2.5 text-[13px] font-bold shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                title={t("transcript.export.html", "Xuất bản HTML")}
+              >
+                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <svg className="w-4 h-4 group-hover:scale-110 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                HTML
+              </button>
+
+              <SyncTranscriptButton />
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -795,24 +981,19 @@ export default function TranscriptPage() {
                 );
                 void load();
               }}
-              className="text-sm font-medium text-[var(--accent)] hover:underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
             >
-              {t("transcript.reload.button", "Tải lại dữ liệu")}
+              <span className={loading ? "animate-spin" : ""}>🔄</span> {t("transcript.reload.title", "Tải lại dữ liệu")}
             </button>
           </div>
         </div>
 
-        <div className="rounded-[22px] border border-[var(--warning)]/20 bg-[var(--warning)]/10 px-5 py-4 text-sm text-[var(--warning)] shadow-[0_10px_30px_rgba(245,158,11,0.10)]">
-          <div className="font-semibold">
-            {t("transcript.notice.title", "Lưu ý đồng bộ")}
-          </div>
-          <div className="mt-2 leading-7 opacity-95">
-            {t(
-              "transcript.notice.steps",
-              "Bước 1: bấm “Mở bảng điểm MYDTU”. Bước 2: đăng nhập MYDTU nếu cần. Bước 3: bấm “Kiểm tra kết nối”. Bước 4: quay lại và bấm “Sync bảng điểm”.",
-            )}
-          </div>
-        </div>
+        <ExpandableHint title={t("transcript.notice.title", "Lưu ý đồng bộ")} isWarning={true}>
+          {t(
+            "transcript.notice.steps",
+            "Bước 1: bấm \"Mở bảng điểm MYDTU\". Bước 2: đăng nhập MYDTU nếu cần. Bước 3: bấm \"Kiểm tra kết nối\". Bước 4: quay lại và bấm \"Đồng bộ bảng điểm\".",
+          )}
+        </ExpandableHint>
 
         <TranscriptExtensionConnect />
 
@@ -949,27 +1130,33 @@ export default function TranscriptPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
-            <StatCard
-              label={t("transcript.stat.visibleRows", "Số dòng hiển thị")}
-              value={filteredItems.length}
-            />
-            <StatCard
-              label={t("transcript.stat.visibleSemesters", "Số học kỳ hiển thị")}
-              value={grouped.length}
-            />
-            <StatCard
-              label={t("transcript.stat.lastSync", "Lần sync cuối")}
-              value={lastSyncedLabel}
-            />
-          </div>
+          {loading && items.length === 0 ? (
+            <div className="mt-4">
+              <TranscriptStatsSkeleton />
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-3">
+              <StatCard
+                label={t("transcript.stat.visibleRows", "Số dòng hiển thị")}
+                value={filteredItems.length}
+              />
+              <StatCard
+                label={t("transcript.stat.visibleSemesters", "Số học kỳ hiển thị")}
+                value={grouped.length}
+              />
+              <StatCard
+                label={t("transcript.stat.lastSync", "Lần sync cuối")}
+                value={lastSyncedLabel}
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(280px,1fr)]">
           <div className="space-y-4">
             <div className="app-card rounded-3xl p-4">
-              {loading ? (
-                <EmptyBox>{t("transcript.loading", "Đang tải bảng điểm...")}</EmptyBox>
+              {loading && items.length === 0 ? (
+                <TranscriptTableSkeleton />
               ) : error ? (
                 <EmptyBox tone="error">{error}</EmptyBox>
               ) : grouped.length === 0 ? (
@@ -1109,83 +1296,88 @@ export default function TranscriptPage() {
                 {t("transcript.quickOverview", "Tổng quan nhanh")}
               </div>
 
-              <div className="mt-4 rounded-3xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs uppercase tracking-wide app-text-muted">
-                      {t("transcript.sync.status", "Trạng thái đồng bộ")}
-                    </div>
-                    <div className="mt-2 text-base font-semibold">{syncStatusLabel}</div>
-                    <div className="mt-1 text-sm app-text-muted">
-                      {t("transcript.sync.last", "Lần sync cuối")}: {lastSyncedLabel}
+              {loading && items.length === 0 ? (
+                <div className="mt-4 space-y-4">
+                  <Skeleton className="h-20 w-full rounded-2xl" />
+                  <Skeleton className="h-40 w-full rounded-2xl" />
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4 rounded-3xl border border-[var(--border-main)] bg-[var(--bg-soft)]/55 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs uppercase tracking-wide app-text-muted">
+                          {t("transcript.sync.status", "Trạng thái đồng bộ")}
+                        </div>
+                        <div className="mt-2 text-base font-semibold">{syncStatusLabel}</div>
+                        <div className="mt-1 text-sm app-text-muted">
+                          {t("transcript.sync.last", "Lần sync cuối")}: {lastSyncedLabel}
+                        </div>
+                      </div>
+
+                      <span
+                        className={[
+                          "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
+                          syncStatusTone === "success"
+                            ? "app-badge-online"
+                            : syncStatusTone === "warning"
+                            ? "app-pill-warning"
+                            : syncStatusTone === "error"
+                            ? "app-pill-danger"
+                            : "app-pill",
+                        ].join(" ")}
+                      >
+                        {syncStatusLabel}
+                      </span>
                     </div>
                   </div>
 
-                  <span
-                    className={[
-                      "inline-flex rounded-full px-3 py-1 text-xs font-semibold",
-                      syncStatusTone === "success"
-                        ? "app-badge-online"
-                        : syncStatusTone === "warning"
-                        ? "app-pill-warning"
-                        : syncStatusTone === "error"
-                        ? "app-pill-danger"
-                        : "app-pill",
-                    ].join(" ")}
-                  >
-                    {syncStatusLabel}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3">
-                <QuickStatCard
-                  label={t("transcript.quick.gpa4", "GPA hệ 4 hiện tại")}
-                  value={overallGpa4}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.countedCredits", "Tín chỉ tính vào tổng")}
-                  value={String(countedCredits)}
-                />
-                <QuickStatCard
-                  label={t(
-                    "transcript.quick.passedCountedCredits",
-                    "Tín chỉ đạt tính vào tổng",
-                  )}
-                  value={String(passedCountedCredits)}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.passFailCredits", "Tín chỉ P / P(F)")}
-                  value={String(passFailCredits)}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.pendingCredits", "Tín chỉ chờ điểm")}
-                  value={String(pendingCredits)}
-                />
-                <QuickStatCard
-                  label={t(
-                    "transcript.quick.registeredCredits",
-                    "Tổng ĐVHT đang hiển thị",
-                  )}
-                  value={String(registeredCredits)}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.passedCourses", "Môn đạt")}
-                  value={String(passedCount)}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.failedCourses", "Môn chưa đạt")}
-                  value={String(failedCount)}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.semesters", "Số học kỳ")}
-                  value={String(grouped.length)}
-                />
-                <QuickStatCard
-                  label={t("transcript.quick.rows", "Số dòng bảng điểm")}
-                  value={String(filteredItems.length)}
-                />
-              </div>
+                  <div className="mt-4 grid grid-cols-1 gap-3">
+                    <QuickStatCard
+                      label={t("transcript.quick.gpa4", "GPA hệ 4 hiện tại")}
+                      value={overallGpa4}
+                    />
+                    <QuickStatCard
+                      label={t("transcript.quick.countedCredits", "Tín chỉ tính vào tổng")}
+                      value={String(countedCredits)}
+                    />
+                    <QuickStatCard
+                      label={t(
+                        "transcript.quick.passedCountedCredits",
+                        "Tín chỉ đạt tính vào tổng",
+                      )}
+                      value={String(passedCountedCredits)}
+                    />
+                    <QuickStatCard
+                      label={t("transcript.quick.passFailCredits", "Tín chỉ P / P(F)")}
+                      value={String(passFailCredits)}
+                    />
+                    <QuickStatCard
+                      label={t("transcript.quick.pendingCredits", "Tín chỉ chờ điểm")}
+                      value={String(pendingCredits)}
+                    />
+                    <QuickStatCard
+                      label={t(
+                        "transcript.quick.registeredCredits",
+                        "Tổng ĐVHT đang hiển thị",
+                      )}
+                      value={String(registeredCredits)}
+                    />
+                    <QuickStatCard
+                      label={t("transcript.quick.passedCourses", "Môn đạt")}
+                      value={String(passedCount)}
+                    />
+                    <QuickStatCard
+                      label={t("transcript.quick.failedCourses", "Môn chưa đạt")}
+                      value={String(failedCount)}
+                    />
+                    <QuickStatCard
+                      label={t("transcript.quick.semesters", "Số học kỳ")}
+                      value={String(grouped.length)}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

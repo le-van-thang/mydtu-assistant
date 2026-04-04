@@ -62,6 +62,201 @@ type AppToast = {
   message?: string;
 };
 
+function exportToExcel(items: TimetableItem[], periodLabel: string, t: any, language: string) {
+  const tableHtml = `
+    <table border="1" cellpadding="4" cellspacing="0" style="font-family: Arial, sans-serif; font-size: 11pt; border-collapse: collapse;">
+      <tr>
+        <th colspan="8" style="background-color: #1e3a8a; color: white; font-size: 14pt; font-weight: bold; text-align: center; height: 40px; border: 1px solid #1e3a8a;">${t("timetable.export.title", "LỊCH HỌC")} (${periodLabel})</th>
+      </tr>
+      <tr>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; height: 30px;">${t("timetable.export.stt", "STT")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">${t("timetable.export.date", "Ngày học")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">${t("timetable.export.weekday", "Thứ")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">${t("timetable.export.time", "Thời gian")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; width: 300px;">${t("timetable.export.course", "Môn học & Mã môn")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">${t("timetable.export.roomMode", "Phòng / Hình thức")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">${t("timetable.export.campus", "Cơ sở")}</th>
+        <th style="background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">${t("timetable.export.weekLabel", "Tuần / Học kỳ")}</th>
+      </tr>
+      ${items.map((it, i) => {
+        const d = parseOccurrenceDate(it.occurrenceDate);
+        const dateStr = d ? formatShortDate(d, language) : "--";
+        const weekday = toWeekdayLabel(it.dayOfWeek, language);
+        const mode = getDeliveryMode(it);
+        const badgeColor = mode === 'online' ? '#1d4ed8' : '#c2410c';
+        const badgeBg = mode === 'online' ? '#dbeafe' : '#ffedd5';
+        
+        return `
+        <tr>
+          <td style="text-align: center; border: 1px solid #e2e8f0; vertical-align: middle;">${i + 1}</td>
+          <td style="font-weight: bold; text-align: center; border: 1px solid #e2e8f0; vertical-align: middle;">${dateStr}</td>
+          <td style="text-align: center; border: 1px solid #e2e8f0; vertical-align: middle;">${weekday}</td>
+          <td style="text-align: center; font-weight: bold; color: #334155; border: 1px solid #e2e8f0; vertical-align: middle;">${it.startTime} - ${it.endTime}</td>
+          <td style="border: 1px solid #e2e8f0; vertical-align: middle;">
+            <div style="font-weight: bold; color: #1e3a8a;">${it.courseName || ""}</div>
+            <div style="color: #64748b; font-size: 10pt;">${it.courseCode}</div>
+          </td>
+          <td style="text-align: center; border: 1px solid #e2e8f0; vertical-align: middle;">
+            <span style="font-weight: bold;">${it.room || "--"}</span><br>
+            <span style="display: inline-block; padding: 2px 6px; font-size: 9pt; font-weight: bold; color: ${badgeColor}; background-color: ${badgeBg}; border-radius: 4px; margin-top: 4px;">
+              ${mode === 'online' ? t("timetable.export.online", "Online") : t("timetable.export.onsite", "Onsite")}
+            </span>
+          </td>
+          <td style="text-align: center; border: 1px solid #e2e8f0; vertical-align: middle;">${it.campus || "--"}</td>
+          <td style="text-align: center; color: #64748b; border: 1px solid #e2e8f0; vertical-align: middle;">${it.weekLabel || it.weeksIncluded || it.semester || "--"}</td>
+        </tr>
+      `}).join('')}
+    </table>
+  `;
+
+  const htmlStr = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>DL</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+    </head>
+    <body>
+      ${tableHtml}
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(["\uFEFF" + htmlStr], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lich_hoc_${new Date().toLocaleDateString("vi-VN").replace(/\//g, "-")}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportToHTML(items: TimetableItem[], periodLabel: string, t: any, language: string) {
+  const now = new Date().toLocaleString(language === "vi" ? "vi-VN" : "en-US", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric"
+  });
+  const totalClasses = items.length;
+
+  let rowsHtml = items.map((it, i) => {
+    const d = parseOccurrenceDate(it.occurrenceDate);
+    const dateStr = d ? formatShortDate(d, language) : "--";
+    const weekday = toWeekdayLabel(it.dayOfWeek, language);
+    const mode = getDeliveryMode(it);
+    return `
+      <tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td>${dateStr}</td>
+        <td>${weekday}</td>
+        <td><span class="badge time">${it.startTime} - ${it.endTime}</span></td>
+        <td style="font-weight:bold; color:#1e3a8a">${it.courseCode}</td>
+        <td>${it.courseName || ""}</td>
+        <td>${it.room}</td>
+        <td>${it.campus || ""}</td>
+        <td><span class="badge mode ${mode === 'online' ? 'online' : 'onsite'}">${mode === 'online' ? t("timetable.export.online", "Online") : t("timetable.export.onsite", "Onsite")}</span></td>
+      </tr>
+    `;
+  }).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="${language}"><head>
+  <meta charset="UTF-8">
+  <title>${t("timetable.export.title", "Lịch Học")}</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1a202c;padding:24px}
+    .report{max-width:1080px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden}
+    .header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:28px 32px}
+    .header h1{font-size:1.6rem;font-weight:800;margin:0 0 6px}
+    .header p{opacity:.85;font-size:.88rem;margin:0}
+    .content{padding:24px}
+    table{width:100%;border-collapse:collapse;font-size:.85rem}
+    th{background:#f8faff;color:#64748b;font-weight:700;font-size:.7rem;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:2px solid #e2e8f0}
+    td{padding:10px 14px;border-bottom:1px solid #f1f5f9}
+    .badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font-size:.72rem;font-weight:700}
+    .time{background:#f1f5f9;color:#475569}
+    .online{background:#dbeafe;color:#1d4ed8}
+    .onsite{background:#ffedd5;color:#c2410c}
+    @media print{body{background:#fff;padding:0}.report{box-shadow:none}}
+  </style>
+</head><body><div class="report">
+  <div class="header">
+    <h1>🗓 ${t("timetable.export.title", "Lịch Học")} ${periodLabel ? "(" + periodLabel + ")" : ""}</h1>
+    <p>${t("timetable.export.exportedFrom", "Xuất từ MYDTU Assistant")} &bull; ${now} &bull; ${t("timetable.export.events", { count: totalClasses, defaultValue: `${totalClasses} sự kiện học` })}</p>
+  </div>
+  <div class="content">
+    <table>
+      <thead><tr>
+        <th style="width:40px;text-align:center">${t("timetable.export.stt", "STT")}</th>
+        <th>${t("timetable.export.date", "Ngày học")}</th>
+        <th>${t("timetable.export.weekday", "Thứ")}</th>
+        <th>${t("timetable.export.time", "Thời gian")}</th>
+        <th>${t("timetable.export.course", "Mã môn")}</th>
+        <th>${t("timetable.export.courseName", "Tên môn")}</th>
+        <th>${t("timetable.export.roomMode", "Phòng / Hình thức")}</th>
+        <th>${t("timetable.export.campus", "Cơ sở")}</th>
+        <th>${t("timetable.export.mode", "Loại")}</th>
+      </tr></thead>
+      <tbody>${rowsHtml || "<tr><td colspan=\"9\" style=\"text-align:center;padding:20px\">" + t("timetable.content.emptyWeek", "Không có dữ liệu lịch học") + "</td></tr>"}</tbody>
+    </table>
+  </div>
+</div></body></html>`;
+
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lich_hoc_${new Date().toLocaleDateString("vi-VN").replace(/\//g, "-")}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const BTN_NEUTRAL =
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card)] px-5 text-sm font-bold text-[var(--text-main)] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--accent)]/50 hover:text-[var(--accent)] active:scale-95";
+
+const BTN_PRIMARY =
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-blue-500/40 active:scale-95";
+
+function ExpandableHint({ title, children, isWarning }: { title: string; children: React.ReactNode; isWarning?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const toneClass = isWarning ? "text-[var(--warning)]" : "text-[var(--accent)]";
+  
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[var(--border-main)] bg-[var(--bg-soft)] transition-all hover:border-[var(--accent)]/40 w-full mb-4">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-bold ${toneClass} hover:bg-[var(--bg-card-strong)] transition-colors`}
+      >
+        <span className="flex items-center gap-2">
+          {isWarning ? (
+            <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          ) : (
+             <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+             </svg>
+          )}
+          <span>{title}</span>
+        </span>
+        <svg
+          className={`h-4 w-4 transition-transform duration-300 ${open ? "rotate-180" : "rotate-0"} shrink-0`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-[var(--border-main)] px-4 py-4 text-sm app-text-muted leading-relaxed">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TimetablePage() {
   const { t, i18n } = useTranslation();
 
@@ -174,18 +369,27 @@ export default function TimetablePage() {
     return Array.from(set).sort();
   }, [items]);
 
+  const courseOptions = useMemo(() => {
+    const map = new Map<string, { code: string; name: string }>();
+    for (const item of items) {
+      if (item.courseCode) {
+        map.set(item.courseCode, {
+          code: item.courseCode,
+          name: item.courseName || "",
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [items]);
+
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchCampus =
         campusFilter === "all" ? true : (item.campus || "") === campusFilter;
 
-      const courseText = `${item.courseCode} ${item.courseName || ""}`
-        .toLowerCase()
-        .trim();
-
-      const matchCourse = courseFilter.trim()
-        ? courseText.includes(courseFilter.trim().toLowerCase())
-        : true;
+      const matchCourse = courseFilter === "all" || !courseFilter
+        ? true
+        : item.courseCode === courseFilter;
 
       return matchCampus && matchCourse;
     });
@@ -352,48 +556,27 @@ export default function TimetablePage() {
       `}</style>
 
       <div className="mx-auto w-full max-w-7xl space-y-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        {/* Tiêu đề & Sync */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {t("timetable.title")}
+            <h1 className="text-[1.9rem] font-bold tracking-tight">
+              {t("timetable.title", "Thời khoá biểu")}
             </h1>
-            <p className="mt-1 text-sm app-text-muted">
-              {t("timetable.subtitle")}
+            <p className="mt-1 text-sm font-medium app-text-muted">
+              {t("timetable.subtitle", "Xem lịch học theo ngày/tuần/tháng.")}
             </p>
           </div>
 
-          <div className="flex flex-col items-start gap-2 lg:items-end">
+          <div className="flex flex-col items-start gap-2 lg:items-end shrink-0">
             <div
               onClickCapture={handleSyncClick}
               className={syncing ? "syncing-timetable-button" : ""}
             >
               <SyncTimetableButton />
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                pushToast(
-                  "info",
-                  i18n.language === "en"
-                    ? "Reloading data"
-                    : "Đang tải lại dữ liệu",
-                  i18n.language === "en"
-                    ? "Refreshing timetable from the current database snapshot."
-                    : "Đang làm mới thời khoá biểu từ dữ liệu hiện có trong hệ thống.",
-                  2200,
-                );
-                void load(viewMode, selectedDate);
-              }}
-              className="text-sm font-medium hover:underline"
-              style={{ color: "var(--accent)" }}
-            >
-              {t("timetable.actions.reloadData")}
-            </button>
-
             {syncMessage ? (
               <div
-                className="rounded-xl px-3 py-2 text-[15px] font-bold"
+                className="mt-1 rounded-xl px-3 py-2 text-[14px] font-bold shadow-sm"
                 style={{
                   background: "#dcfce7",
                   color: "#166534",
@@ -406,58 +589,113 @@ export default function TimetablePage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--warning)]/20 bg-[var(--warning)]/10 px-5 py-4 text-sm text-[var(--warning)] shadow-[0_10px_30px_rgba(245,158,11,0.10)]">
-          <div className="font-semibold">
-            {i18n.language === "en" ? "Sync guide" : "Lưu ý đồng bộ"}
-          </div>
-          <div className="mt-2 leading-7 opacity-95">
-            {i18n.language === "en"
-              ? "Step 1: click “Connect MYDTU”. Step 2: click “Check connection”. Step 3: when the connection status shows connected, return here and click “Sync from Extension” to import your latest timetable."
-              : "Bước 1: bấm “Kết nối MYDTU”. Bước 2: bấm “Kiểm tra kết nối”. Bước 3: khi trạng thái hiển thị đã kết nối thì quay lại bấm “Sync từ Extension” để nhập thời khoá biểu mới nhất."}
+        {/* Tùy chỉnh Layout cho Action: Tải lại, Export, Nhắc nhở */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+               pushToast(
+                 "info",
+                 i18n.language === "en" ? "Reloading data" : "Đang tải lại dữ liệu",
+                 i18n.language === "en"
+                   ? "Refreshing timetable from the current database snapshot."
+                   : "Đang làm mới thời khoá biểu từ dữ liệu hiện có trong hệ thống.",
+                 2200,
+               );
+               void load(viewMode, selectedDate);
+            }}
+            className={BTN_NEUTRAL}
+          >
+            {t("timetable.actions.reloadData", "Tải lại dữ liệu")}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof Notification === "undefined") {
+                 pushToast("error", i18n.language === "en" ? "Not Supported" : "Không hỗ trợ", i18n.language === "en" ? "Your browser does not support notifications." : "Trình duyệt của bạn không hỗ trợ thông báo.");
+                 return;
+              }
+              if (Notification.permission === "default") {
+                 Notification.requestPermission().then((perm) => {
+                   if (perm === "granted") pushToast("success", i18n.language === "en" ? "Enabled" : "Đã bật", i18n.language === "en" ? "Notifications are allowed." : "Thông báo học tập đã được cấp quyền từ trình duyệt.");
+                   else pushToast("error", i18n.language === "en" ? "Declined" : "Từ chối", i18n.language === "en" ? "Permission has been declined." : "Bạn chưa cấp quyền thông báo.");
+                 });
+              } else if (Notification.permission === "granted") {
+                 pushToast("info", i18n.language === "en" ? "Already On" : "Đang bật", i18n.language === "en" ? "Notifications are already allowed." : "Trình duyệt đã cho phép nhận thông báo học tập.");
+              } else {
+                 pushToast("error", i18n.language === "en" ? "Blocked" : "Bị chặn", i18n.language === "en" ? "Please unblock notifications in site settings." : "Xin hãy vào cài đặt Cấp quyền cho Trang để mở lại.");
+              }
+            }}
+            title={i18n.language === "en" ? "Enable study reminders" : "Bật/Tắt thông báo nhắc nhở lịch học"}
+            className={BTN_NEUTRAL}
+          >
+            🔔 {t("timetable.actions.enableNotifications", "Bật nhắc nhở")}
+          </button>
+          
+          <div className="ml-auto overflow-x-auto overflow-y-hidden pl-1 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => exportToExcel(filteredItems, periodLabel, t, i18n.language)}
+              title={i18n.language === "en" ? "Export to styled Excel" : "Xuất lịch học ra tệp Excel với bố cục màu sắc trực quan, đẹp mắt"}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[#b7ead9] bg-[#ecfdf5] px-5 text-sm font-bold text-[#047857] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:bg-[#dff8ee] active:scale-95 gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              {t("timetable.actions.exportExcel", "Xuất Excel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => exportToHTML(filteredItems, periodLabel, t, i18n.language)}
+              title={i18n.language === "en" ? "Export to HTML" : "Xuất báo cáo HTML cấu trúc chuyên nghiệp để thao tác in trực tiếp"}
+              className={`${BTN_PRIMARY} gap-2`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              {t("timetable.actions.exportHtml", "Báo cáo HTML")}
+            </button>
           </div>
         </div>
 
-        <div
-          className="rounded-[28px] px-5 py-4"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(240,253,244,0.78), rgba(220,252,231,0.62))",
-            border: "1px solid rgba(134,239,172,0.55)",
-            boxShadow: "0 8px 20px rgba(34,197,94,0.045)",
-          }}
-        >
-          <div
-            className="font-bold"
-            style={{
-              color: "#14532d",
-              fontSize: "18px",
-              fontWeight: 700,
-            }}
-          >
-            {t("timetable.summary.todayNotice")}
+        {/* Các alert thông báo gọn gàng nhất */}
+        <div className="flex flex-col xl:flex-row gap-4 items-start">
+          <div className="flex-1 w-full xl:w-1/2">
+             <ExpandableHint title={t("timetable.sync.guideTitle", "Lưu ý đồng bộ")} isWarning={true}>
+                {t("timetable.sync.guideDesc", "Bước 1: Kết nối MYDTU. Bước 2: Kiểm tra kết nối. Bước 3: Khi thông báo báo kết nối thành công thay vì 'Chưa kết nối', vui lòng cuộn lên và bấm mục Đồng bộ lịch học phía trên.")}
+             </ExpandableHint>
           </div>
 
           <div
-            className="mt-2"
+            className="flex-1 w-full xl:w-1/2 mt-4 xl:mt-4 rounded-2xl px-5 py-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
             style={{
-              color: "#166534",
-              fontSize: "16px",
-              lineHeight: 1.8,
-              fontWeight: 500,
+              background: "linear-gradient(135deg, rgba(240,253,244,0.78), rgba(220,252,231,0.62))",
+              border: "1px solid rgba(134,239,172,0.55)",
             }}
           >
-            {noClassToday
-              ? t("timetable.notice.noClassToday")
-              : t("timetable.notice.hasClassToday", {
-                  count: todayItems.length,
-                })}
+            <div className="font-extrabold text-[15px] text-[#14532d] flex items-center gap-2">
+               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/></svg>
+               {t("timetable.summary.todayNotice", "Thông báo hôm nay")}
+            </div>
+            <div className="mt-1.5 font-semibold text-[#166534] text-sm leading-relaxed">
+              {noClassToday
+                ? t("timetable.notice.noClassToday", "Hôm nay bạn không có lịch học. Có thể nghỉ ngơi hoặc dành thời gian cá nhân.")
+                : t("timetable.notice.hasClassToday", { count: todayItems.length, defaultValue: `Hôm nay bạn có ${todayItems.length} lịch học.` })}
+            </div>
           </div>
         </div>
 
         <ExtensionConnect />
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4 items-start">
+          <div className="min-w-0 space-y-4">
             <div className="app-card rounded-3xl p-4">
               <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
                 <div className="flex min-w-0 flex-nowrap items-center gap-3 overflow-x-auto">
@@ -556,15 +794,22 @@ export default function TimetablePage() {
 
                 <div>
                   <label htmlFor="course-filter" className="sr-only">
-                    {t("timetable.filters.searchPlaceholder")}
+                    {i18n.language === "en" ? "Filter by course" : "Lọc theo môn học"}
                   </label>
-                  <input
+                  <select
                     id="course-filter"
                     value={courseFilter}
                     onChange={(e) => setCourseFilter(e.target.value)}
-                    placeholder={t("timetable.filters.searchPlaceholder")}
-                    className="app-input rounded-2xl px-3 py-2 text-sm outline-none"
-                  />
+                    className="app-input rounded-2xl px-3 py-2 text-sm outline-none w-full"
+                    title={i18n.language === "en" ? "Filter by course" : "Lọc theo môn học"}
+                  >
+                    <option value="all">{t("timetable.filters.allCourses", "Tất cả các môn")}</option>
+                    {courseOptions.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name ? `${c.name} (${c.code})` : c.code}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -760,12 +1005,12 @@ export default function TimetablePage() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="app-card rounded-3xl p-4">
-              <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
-                {t("timetable.todayCard.title")}
+          <div className="w-full xl:w-[280px] shrink-0 space-y-4">
+            <div className="app-card rounded-3xl p-3 sticky top-6">
+              <div className="text-[10px] font-semibold uppercase tracking-widest app-text-muted">
+                {t("timetable.todayCard.title", "HÔM NAY")}
               </div>
-              <div className="mt-1 text-lg font-semibold">
+              <div className="mt-1 text-base font-semibold">
                 {formatFullDate(today, i18n.language)}
               </div>
 
@@ -828,8 +1073,8 @@ export default function TimetablePage() {
               )}
             </div>
 
-            <div className="app-card rounded-3xl p-4">
-              <div className="text-sm font-semibold uppercase tracking-wide app-text-muted">
+            <div className="app-card rounded-3xl p-3">
+              <div className="text-[10px] font-semibold uppercase tracking-widest app-text-muted">
                 {t("timetable.quickOverview.title")}
               </div>
 
@@ -894,7 +1139,7 @@ export default function TimetablePage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-2">
                 <QuickStatCard
                   label={t("timetable.quickOverview.currentViewMode")}
                   value={

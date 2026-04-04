@@ -85,6 +85,19 @@
   --shadow-accent: 0 14px 34px rgba(59, 130, 246, 0.28);
 }
 
+/* ===== Hộp thông báo / Alert boxes — màu cố định, giữ rõ nét cả Sáng lẫn Tối ===== */
+.msg-info    { border: 1px solid #bae6fd; background: #f0f9ff; color: #0c4a6e; }
+.msg-success { border: 1px solid #86efac; background: #f0fdf4; color: #14532d; }
+.msg-warning { border: 1px solid #fde68a; background: #fffbeb; color: #78350f; }
+.msg-error   { border: 1px solid #fca5a5; background: #fef2f2; color: #7f1d1d; }
+.msg-notice  { border: 1px solid rgba(251,191,36,0.50); background: #fffbeb; color: #78350f; }
+
+.dark .msg-info    { border-color: rgba(14,165,233,0.35);  background: rgba(14,165,233,0.10);  color: #7dd3fc; }
+.dark .msg-success { border-color: rgba(34,197,94,0.35);   background: rgba(34,197,94,0.10);   color: #86efac; }
+.dark .msg-warning { border-color: rgba(245,158,11,0.40);  background: rgba(245,158,11,0.12);  color: #fde68a; }
+.dark .msg-error   { border-color: rgba(239,68,68,0.35);   background: rgba(239,68,68,0.10);   color: #fca5a5; }
+.dark .msg-notice  { border-color: rgba(251,191,36,0.28);  background: rgba(245,158,11,0.10);  color: #fde68a; }
+
 * {
   box-sizing: border-box;
 }
@@ -670,18 +683,24 @@ img {
 }
 
 .auth-toast-success {
-  background: rgba(5, 150, 105, 0.18);
-  color: #d1fae5;
+  background: rgba(16, 185, 129, 0.95);
+  color: #fff;
+  font-weight: 700;
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .auth-toast-error {
-  background: rgba(220, 38, 38, 0.18);
-  color: #fee2e2;
+  background: rgba(239, 68, 68, 0.95);
+  color: #fff;
+  font-weight: 700;
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .auth-toast-info {
-  background: rgba(37, 99, 235, 0.18);
-  color: #dbeafe;
+  background: rgba(59, 130, 246, 0.95);
+  color: #fff;
+  font-weight: 700;
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .auth-toast-icon {

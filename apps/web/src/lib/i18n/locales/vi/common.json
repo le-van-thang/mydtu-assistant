@@ -46,7 +46,15 @@
     "quickHintExamSearchMobile": "để tra cứu nhanh theo môn, mã sinh viên, lớp và ngày thi.",
     "closeMobileSidebar": "Đóng menu",
     "closeNavigationMenu": "Đóng menu điều hướng",
-    "openNavigationMenu": "Mở menu điều hướng"
+    "openNavigationMenu": "Mở menu điều hướng",
+    "resetFilters": "Đặt lại bộ lọc",
+    "yes": "Có",
+    "no": "Không",
+    "noDataYet": "Chưa có",
+    "success": "Thành công",
+    "partial": "Một phần",
+    "failed": "Thất bại",
+    "none": "Chưa có"
   },
   "shell": {
     "userFallback": "Người dùng",
@@ -69,7 +77,8 @@
     "profile": "Hồ sơ",
     "exams": "Danh sách thi",
     "examTentative": "Lịch thi dự kiến",
-    "examOfficial": "Lịch thi chính thức"
+    "examOfficial": "Lịch thi chính thức",
+    "rateflow": "⚡ Đánh giá nhanh"
   },
   "status": {
     "title": "Trạng thái dữ liệu",
@@ -112,14 +121,17 @@
     "section": "Lịch tuần",
     "placeholder": "Bảng thời khoá biểu (demo).",
     "actions": {
-      "syncExtension": "Sync từ Extension",
+      "syncExtension": "Đồng bộ lịch học",
       "reloadData": "Tải lại dữ liệu",
       "connectMyDtu": "Kết nối MYDTU",
-      "checkConnection": "Kiểm tra kết nối"
+      "checkConnection": "Kiểm tra kết nối",
+      "enableNotifications": "Bật nhắc nhở",
+      "exportExcel": "Xuất Excel (XLS)",
+      "exportHtml": "Báo cáo HTML"
     },
     "sync": {
       "scanning": "Đang quét nhiều tuần từ MYDTU, vui lòng chờ...",
-      "syncing": "Đang sync...",
+      "syncing": "Đang đồng bộ...",
       "extensionFailed": "Extension sync thất bại.",
       "timeout": "Extension không phản hồi kịp thời.",
       "emptyResponse": "Extension trả về rỗng.",
@@ -134,7 +146,9 @@
       "importFailedWithStatus": "Import thất bại ({{status}}).",
       "unsupportedScope": "Scope không hỗ trợ: {{scope}}",
       "success": "Đã đồng bộ thành công {{totalItems}} buổi học trong {{totalWeeks}} tuần.",
-      "successSimple": "Đã đồng bộ xong."
+      "successSimple": "Đã đồng bộ xong.",
+      "guideTitle": "Lưu ý đồng bộ",
+      "guideDesc": "Bước 1: Kết nối MYDTU. Bước 2: Kiểm tra kết nối. Bước 3: Đã kết nối thì bấm \"Đồng bộ lịch học\" ở phía trên để lấy lịch."
     },
     "summary": {
       "todayNotice": "Thông báo hôm nay",
@@ -152,7 +166,8 @@
     },
     "filters": {
       "allCampuses": "Tất cả cơ sở",
-      "searchPlaceholder": "Lọc theo mã môn hoặc tên môn"
+      "searchPlaceholder": "Lọc theo mã môn hoặc tên môn",
+      "allCourses": "Tất cả các môn"
     },
     "todayCard": {
       "title": "Hôm nay"
@@ -223,13 +238,134 @@
       "campusLabel": "Cơ sở: {{value}}",
       "weekLabel": "Tuần: {{value}}",
       "todayNoClass": "Hôm nay không có lịch học."
+    },
+    "export": {
+      "title": "LỊCH HỌC — MYDTU ASSISTANT",
+      "stt": "STT",
+      "date": "Ngày học",
+      "weekday": "Thứ",
+      "time": "Thời gian",
+      "course": "Mã môn",
+      "courseName": "Tên môn",
+      "roomMode": "Phòng",
+      "campus": "Cơ sở",
+      "weekLabel": "Tuần / Học kỳ",
+      "mode": "Hình thức",
+      "online": "Online",
+      "onsite": "Tại lớp",
+      "exportedFrom": "Xuất từ MYDTU Assistant",
+      "events": "{{count}} sự kiện học"
     }
   },
   "transcript": {
-    "title": "Bảng điểm",
-    "subtitle": "Xem kết quả học tập và GPA theo kỳ.",
+    "title": "Bảng điểm tổng quan",
+    "subtitle": "Đồng bộ và xem dữ liệu học tập theo học kỳ.",
     "section": "Tổng hợp điểm",
-    "placeholder": "Bảng điểm (demo)."
+    "placeholder": "Bảng điểm (demo).",
+    "loading": "Đang tải bảng điểm...",
+    "emptyFiltered": "Không có dữ liệu phù hợp với bộ lọc hiện tại.",
+    "courseCount": "{{count}} môn",
+    "quickOverview": "Tổng quan nhanh",
+    "notice": {
+      "title": "Lưu ý đồng bộ",
+      "steps": "Bước 1: bấm \"Mở bảng điểm MYDTU\". Bước 2: đăng nhập MYDTU nếu cần. Bước 3: bấm \"Kiểm tra kết nối\". Bước 4: quay lại và bấm \"Đồng bộ bảng điểm\"."
+    },
+    "reload": {
+      "title": "Đang tải lại dữ liệu",
+      "message": "Đang làm mới bảng điểm từ dữ liệu hiện có trong hệ thống.",
+      "button": "Tải lại dữ liệu"
+    },
+    "toast": {
+      "syncSuccessTitle": "Đồng bộ bảng điểm thành công",
+      "syncSuccessMessage": "Dữ liệu bảng điểm mới nhất đã được cập nhật từ extension."
+    },
+    "search": {
+      "label": "Tìm kiếm môn học",
+      "placeholder": "Tìm theo mã môn, mã lớp, tên môn, hình thức..."
+    },
+    "filter": {
+      "academicYear": "Lọc năm học",
+      "allAcademicYears": "Tất cả năm học",
+      "semesterString": "Lọc theo chuỗi học kỳ",
+      "allSemesters": "Tất cả học kỳ",
+      "status": "Trạng thái học phần",
+      "allStatuses": "Tất cả trạng thái",
+      "creditMode": "Tình trạng tín chỉ",
+      "counted": "Tính vào tổng",
+      "passFail": "P / P(F)",
+      "pending": "Chưa có điểm"
+    },
+    "stat": {
+      "visibleRows": "Số dòng hiển thị",
+      "visibleSemesters": "Số học kỳ hiển thị",
+      "lastSync": "Đồng bộ lần cuối"
+    },
+    "status": {
+      "passed": "Đạt",
+      "failed": "Chưa đạt",
+      "unknown": "Chưa rõ"
+    },
+    "table": {
+      "courseCode": "Mã môn",
+      "classCode": "Mã lớp",
+      "courseName": "Tên môn",
+      "method": "Hình thức",
+      "credits": "Tín chỉ",
+      "score10": "Điểm 10",
+      "letter": "Điểm chữ",
+      "gpa4": "GPA hệ 4",
+      "cumulative": "Điểm tích lũy",
+      "status": "Trạng thái",
+      "detail": "Bảng điểm cụ thể",
+      "detailButton": "Xem bảng điểm cụ thể"
+    },
+    "sync": {
+      "status": "Trạng thái đồng bộ",
+      "last": "Lần đồng bộ cuối"
+    },
+    "quick": {
+      "gpa4": "GPA hệ 4 hiện tại",
+      "countedCredits": "Tín chỉ tính vào tổng",
+      "passedCountedCredits": "Tín chỉ đạt tính vào tổng",
+      "passFailCredits": "Tín chỉ P / P(F)",
+      "pendingCredits": "Tín chỉ chờ điểm",
+      "registeredCredits": "Tổng ĐVHT đang hiển thị",
+      "passedCourses": "Môn đạt",
+      "failedCourses": "Môn chưa đạt",
+      "semesters": "Số học kỳ",
+      "rows": "Số dòng bảng điểm"
+    },
+    "detail": {
+      "titleSmall": "Bảng điểm cụ thể",
+      "term": "Học kỳ",
+      "classInfo": "Thông tin lớp",
+      "evaluation": "Đánh giá học phần",
+      "hasGrade": "Đã có điểm",
+      "semesterText": "Chuỗi học kỳ",
+      "note": "Ghi chú",
+      "noteText": "Hiện tại popup này đang hiển thị dữ liệu đã lưu từ bảng điểm tổng quan. Phần đồng bộ tự động bảng điểm cụ thể theo từng môn sẽ nối tiếp ở bước sau."
+    },
+    "connect": {
+      "connected": "Đã kết nối",
+      "checking": "Đang kiểm tra",
+      "notConnected": "Chưa kết nối",
+      "slow": "Phản hồi chậm",
+      "stale": "Extension cũ",
+      "error": "Lỗi",
+      "idle": "Chưa kiểm tra"
+    },
+    "extension": {
+      "stale": "Tiện ích đã bị reload hoặc cập nhật. Hãy tải lại extension trong Chrome rồi hard refresh trang này.",
+      "opened": "Đã mở trang bảng điểm MYDTU. Hãy đăng nhập nếu cần, sau đó bấm Kiểm tra kết nối.",
+      "opening": "Đang mở...",
+      "openButton": "Mở bảng điểm MYDTU",
+      "checkOk": "Kiểm tra kết nối thành công.",
+      "notConnected": "Chưa kết nối.",
+      "slowReply": "Extension phản hồi quá chậm.",
+      "checkingButton": "Đang kiểm tra...",
+      "checkButton": "Kiểm tra kết nối",
+      "statusLabel": "Trạng thái kết nối"
+    }
   },
   "warnings": {
     "title": "Cảnh báo",
@@ -391,7 +527,7 @@
       "restoreDefaults": "Đã khôi phục cài đặt mặc định. Nhấn Lưu để áp dụng.",
       "exportedJson": "Đã xuất file JSON cài đặt.",
       "cacheCleared": "Đã xoá cache giao diện và reset cài đặt local.",
-      "quickSyncSuccess": "Đồng bộ nhanh thành công. Nhấn Lưu để ghi nhận thời gian sync.",
+      "quickSyncSuccess": "Đồng bộ nhanh thành công. Nhấn Lưu để ghi nhận thời gian đồng bộ.",
       "onboardingReset": "Đã reset onboarding. Nhấn Lưu để hoàn tất.",
       "avatarSelected": "Đã chọn ảnh đại diện mới. Nhấn Lưu để áp dụng.",
       "avatarRemoved": "Đã xoá ảnh đại diện. Nhấn Lưu để áp dụng.",
@@ -444,15 +580,15 @@
     "dataSync": {
       "title": "Dữ liệu & đồng bộ",
       "subtitle": "Xuất dữ liệu, reset local cache, đồng bộ cấu hình.",
-      "lastManualSync": "Lần sync thủ công",
-      "lastExportJson": "Lần export JSON",
+      "lastManualSync": "Lần đồng bộ thủ công",
+      "lastExportJson": "Lần xuất JSON",
       "onboarding": "Onboarding",
       "onboardingEnabled": "Đang bật",
       "onboardingDisabled": "Đã tắt",
-      "syncNow": "Sync now",
-      "exportJson": "Export JSON",
-      "clearLocalCache": "Clear local cache",
-      "resetOnboarding": "Reset onboarding",
+      "syncNow": "Đồng bộ ngay",
+      "exportJson": "Xuất JSON",
+      "clearLocalCache": "Xoá cache bộ nhớ tạm",
+      "resetOnboarding": "Đặt lại hướng dẫn",
       "restoreDefaults": "Khôi phục mặc định",
       "hint": "Bản này đã hỗ trợ save settings theo tài khoản. localStorage chỉ còn là lớp fallback để tải nhanh hơn."
     },
@@ -599,6 +735,78 @@
       "birthDateRequired": "Vui lòng chọn ngày sinh.",
       "loginFailed": "Đăng nhập thất bại.",
       "registerFailed": "Đăng ký thất bại."
+    }
+  },
+  "transcriptDetail": {
+    "title": "Bảng điểm chi tiết",
+    "subtitle": "Theo dõi điểm thành phần, tỷ trọng đánh giá và tiến độ chấm theo từng lớp học phần.",
+    "reload": "Tải lại dữ liệu",
+    "loading": "Đang tải dữ liệu chi tiết...",
+    "empty": "Chưa có dữ liệu bảng điểm chi tiết phù hợp.",
+    "notice": {
+      "title": "Lưu ý đồng bộ",
+      "steps": "Bước 1: bấm “Kết nối MYDTU”. Bước 2: đăng nhập nếu cần. Bước 3: quay lại ứng dụng và bấm “Đồng bộ bảng điểm chi tiết”."
+    },
+    "search": {
+      "label": "Tìm kiếm",
+      "placeholder": "Tìm theo mã môn, mã lớp, tên môn, thành phần điểm..."
+    },
+    "filter": {
+      "semester": "Lọc học kỳ",
+      "classCode": "Lọc mã lớp"
+    },
+    "stat": {
+      "rows": "Số dòng thành phần",
+      "classes": "Số lớp học phần",
+      "semesters": "Số học kỳ",
+      "lastSync": "Lần đồng bộ cuối"
+    },
+    "class": {
+      "totalWeight": "Tổng %",
+      "components": "Thành phần"
+    },
+    "table": {
+      "component": "Thành phần",
+      "score1": "Điểm lần 1",
+      "score2": "Điểm lần 2",
+      "scale": "Thang điểm",
+      "weight": "% Điểm",
+      "max": "% Tối đa",
+      "contribution": "Quy đổi"
+    },
+    "sync": {
+      "button": "Đồng bộ bảng điểm chi tiết",
+      "loading": "Đang đồng bộ...",
+      "starting": "Đang khởi động luồng đồng bộ batch từ trang bảng điểm chi tiết...",
+      "keepTabOpen": "Giữ tab MYDTU bảng điểm chi tiết mở cho đến khi đồng bộ xong.",
+      "summary": "Đã quét {{scanned}}/{{requested}} học kỳ, lưu {{inserted}} dòng thành phần, bỏ qua {{skipped}} dòng không khớp transcript, lỗi mở trang chi tiết ở {{detailFailures}} lớp.",
+      "successAll": "Tất cả học kỳ yêu cầu đã được xử lý thành công.",
+      "unknownSemester": "Học kỳ không rõ",
+      "defaultSemesterWarning": "Cần kiểm tra lại trên MYDTU.",
+      "errors": {
+        "timeout": "Đồng bộ quá lâu. Hãy giữ tab MYDTU mở và thử lại.",
+        "extensionReload": "Extension chưa sẵn sàng hoặc đã bị reload. Hãy mở lại trang MYDTU rồi thử lại.",
+        "channelClosed": "Kênh đồng bộ bị đóng sớm. Hãy giữ tab MYDTU mở rồi thử lại.",
+        "invalidPayload": "Dữ liệu lấy từ MYDTU chưa đúng cấu trúc. Nếu lỗi này còn lặp lại thì cần kiểm tra lại trang chi tiết.",
+        "notLoggedIn": "Bạn chưa đăng nhập MYDTU hoặc phiên đăng nhập đã hết hạn.",
+        "unknown": "Đồng bộ bảng điểm chi tiết thất bại."
+      }
+    },
+    "extension": {
+      "title": "Kết nối trang nguồn MYDTU",
+      "helperPrimary": "Dùng bước này trước nếu nút sync cũ bị treo hoặc hay lỗi.",
+      "helperSecondary": "Sau khi cổng thông tin tải xong, không đóng tab MYDTU trong lúc sync.",
+      "connectingMessage": "Đang mở trang bảng điểm chi tiết MYDTU. Nếu cần thì đăng nhập trên đó, sau đó quay lại đây để đồng bộ.",
+      "openFailed": "Không thể mở trang bảng điểm chi tiết MYDTU.",
+      "opened": "MYDTU đã sẵn sàng. Hãy giữ tab đó mở, đảm bảo bộ lọc học kỳ và bảng hiển thị đúng, sau đó bấm Đồng bộ bảng điểm chi tiết ở đây.",
+      "errorMessage": "Kết nối MYDTU thất bại.",
+      "ready": "Sẵn sàng đồng bộ",
+      "opening": "Đang kết nối",
+      "error": "Kết nối lỗi",
+      "idle": "Chưa kết nối",
+      "openingButton": "Đang kết nối MYDTU...",
+      "openButton": "Kết nối MYDTU",
+      "statusLabel": "Trạng thái"
     }
   }
 }
