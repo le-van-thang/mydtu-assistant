@@ -79,6 +79,10 @@ model User {
 
   examNotices ExamNotice[]
   examRecords ExamRecord[]
+
+  // ML
+  mlGradeDatasets ML_GradeDataset[]
+  mlPredictions   ML_Prediction[]
 }
 
 model UserSettings {
@@ -174,6 +178,9 @@ model Transcript {
   import      ImportSession? @relation(fields: [importId], references: [id], onDelete: SetNull)
 
   components  TranscriptComponent[]
+
+  // ML — dataset rows derived from this transcript record
+  mlGradeDatasets ML_GradeDataset[]
 
   @@unique([userId, courseCode, classCode, semester], name: "uq_transcript_natural")
   @@index([userId, semester])
@@ -439,4 +446,279 @@ model ExamRecord {
   @@index([userId, examDate])
   @@index([userId, isLatest, isSuperseded])
   @@index([noticeId])
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ML — GRADE PREDICTION
+// ══════════════════════════════════════════════════════════════════════
+
+/// Trạng thái của một hàng dữ liệu trong tập huấn luyện
+enum ML_RowStatus {
+  pending   // Mới import, chưa được xác thực
+  validated // Đã kiểm tra đủ features, sẵn sàng dùng để train
+  excluded  // Bị loại (thiếu feature quan trọng, outlier, user yêu cầu)
+}
+
+/// Loại feature set — cho phép mở rộng sau này (ví dụ thêm BERT-based)
+enum ML_FeatureSet {
+  v1_basic   // midterm + attendance + cumGPA (MVP)
+  v2_extended // thêm absences, hwScore, quizScore
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Bảng chính: mỗi hàng = 1 lần học 1 môn của 1 sinh viên
+// ─────────────────────────────────────────────────────────────────────
+model ML_GradeDataset {
+  id          String   @id @default(cuid())
+
+  // ── Khoá ngoại đến User (sinh viên) ──────────────────────────────
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ── Khoá tự nhiên dùng để upsert / idempotent import ────────────
+  studentId   String   // Mã sinh viên MyDTU (e.g. "21001234")
+  courseCode  String   // Mã môn học    (e.g. "CSE101")
+  semester    String   // Học kỳ        (e.g. "HK1_2024-2025")
+  classCode   String   @default("") // Mã lớp học phần (phân biệt trường hợp retake)
+
+  // ── Metadata môn học ──────────────────────────────────────────────
+  courseName  String?
+  credits     Int       // Số tín chỉ (feature quan trọng: môn nhiều TC → syllabus nặng hơn)
+  sectionType SectionType @default(LEC) // LEC / LAB / OTHER
+
+  // ── Features đầu vào (X) ─────────────────────────────────────────
+  /// Điểm giữa kỳ / thành phần đánh giá giữa kỳ (thang 10, nullable nếu chưa có)
+  midTermScore        Float?
+  /// Điểm chuyên cần / thành phần điểm quá trình (thang 10)
+  attendanceScore     Float?
+  /// GPA tích lũy ở THỜI ĐIỂM TRƯỚC khi học môn này — snapshot lúc import
+  cumulativeGPA       Float?
+  /// Tổng số tín chỉ đã tích lũy (context về "độ dày" học vấn)
+  creditEarned        Int?
+  /// Số môn đã học cùng lúc trong học kỳ này (proxy cho workload)
+  semesterCourseLoad  Int?
+
+  // ── Feature mở rộng (v2 trở đi) ──────────────────────────────────
+  /// Điểm bài tập / homework (thang 10, nếu có)
+  homeworkScore       Float?
+  /// Điểm quiz / kiểm tra thường xuyên (thang 10)
+  quizScore           Float?
+  /// Số buổi vắng mặt (nếu extension scrape được)
+  absences            Int?
+
+  // ── Nhãn mục tiêu (Y) — điểm cuối kỳ thực tế ────────────────────
+  /// Điểm cuối kỳ thực tế (thang 10). NULL nếu môn chưa kết thúc → dùng để PREDICT
+  finalScore          Float?
+  /// Điểm GPA hệ 4 (chuyển đổi từ finalScore, lưu lại để tránh tính lại)
+  finalGpa4           Float?
+  /// Kết quả môn học lấy từ Transcript
+  courseStatus        CourseStatus @default(unknown)
+
+  // ── Phiên bản feature set đã dùng ────────────────────────────────
+  featureSet          ML_FeatureSet @default(v1_basic)
+
+  // ── Trạng thái hàng ──────────────────────────────────────────────
+  rowStatus           ML_RowStatus  @default(pending)
+  /// Lý do bị loại khỏi tập train (nếu rowStatus = excluded)
+  excludeReason       String?
+
+  // ── Audit ─────────────────────────────────────────────────────────
+  /// ID của Transcript gốc — dùng để join lấy thêm thông tin khi cần
+  transcriptId        String?
+  transcript          Transcript?   @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // ── Predictions liên kết ─────────────────────────────────────────
+  predictions         ML_Prediction[]
+
+  // ── Constraints & Indexes ─────────────────────────────────────────
+  /// Đảm bảo mỗi (sinh viên × môn × lớp × học kỳ) chỉ có 1 hàng dữ liệu
+  @@unique([userId, courseCode, classCode, semester], name: "uq_ml_dataset_natural")
+
+  /// Query nhanh theo sinh viên + học kỳ (UI "xem dự đoán học kỳ này")
+  @@index([userId, semester])
+  /// Query nhanh theo sinh viên + môn (lấy lịch sử học 1 môn)
+  @@index([userId, courseCode])
+  /// Lọc tập train: chỉ lấy hàng validated có finalScore
+  @@index([rowStatus, finalScore])
+  /// Lọc theo featureSet khi train model mới
+  @@index([featureSet, rowStatus])
+  /// Tìm theo studentId (khác userId — là mã SV in trên bảng điểm)
+  @@index([studentId])
+
+  @@map("ML_GradeDataset")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Registry phiên bản model đã train
+// ─────────────────────────────────────────────────────────────────────
+model ML_ModelVersion {
+  id              String   @id @default(cuid())
+
+  /// Tên mô hình (e.g. "grade_predictor_v1", "grade_predictor_v2_xgb")
+  modelName       String
+  /// Phiên bản ngữ nghĩa (e.g. "1.0.0", "2.1.3")
+  version         String
+  /// Thuật toán / framework (e.g. "linear_regression", "random_forest", "xgboost")
+  algorithm       String
+  /// Feature set được dùng để train
+  featureSet      ML_FeatureSet
+
+  // ── Metadata train ───────────────────────────────────────────────
+  /// Số hàng dữ liệu được dùng để train
+  trainSampleCount Int?
+  /// Tỉ lệ train/test split (e.g. 0.8)
+  trainTestSplit  Float?
+  /// Ngày chạy train job
+  trainedAt       DateTime?
+
+  // ── Metrics đánh giá ─────────────────────────────────────────────
+  /// Mean Absolute Error trên tập test
+  metricMAE       Float?
+  /// Root Mean Squared Error trên tập test
+  metricRMSE      Float?
+  /// R² Score (coefficient of determination)
+  metricR2        Float?
+  /// Accuracy trong khoảng ±0.5 điểm (business metric thực tế)
+  metricAccuracy05 Float?
+
+  /// Hyperparameters (JSON, ví dụ: {"n_estimators": 100, "max_depth": 5})
+  hyperparams     Json?
+  /// Feature importances (JSON), ví dụ: {"midTermScore": 0.55, "cumulativeGPA": 0.30}
+  featureImportances Json?
+
+  /// Model artifact đang được deploy hay không
+  isActive        Boolean @default(false)
+  /// Ghi chú người vận hành
+  notes           String? @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  predictions     ML_Prediction[]
+  featureImportanceRows ML_FeatureImportance[]
+
+  @@unique([modelName, version], name: "uq_ml_model_version")
+  @@index([modelName, isActive])
+  @@index([featureSet, isActive])
+
+  @@map("ML_ModelVersion")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Log từng lượt dự đoán (inference)
+// ─────────────────────────────────────────────────────────────────────
+model ML_Prediction {
+  id              String   @id @default(cuid())
+
+  // ── Liên kết ─────────────────────────────────────────────────────
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  datasetId       String
+  dataset         ML_GradeDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  modelVersionId  String
+  modelVersion    ML_ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Restrict)
+
+  // ── Kết quả inference ────────────────────────────────────────────
+  /// Điểm dự đoán (thang 10)
+  predictedScore  Float
+  /// Khoảng tin cậy dưới (ví dụ 95% CI)
+  confidenceLow   Float?
+  /// Khoảng tin cậy trên
+  confidenceHigh  Float?
+  /// Xác suất đỗ (score >= 5.0)
+  passProbability Float?
+
+  // ── Snapshot features tại thời điểm inference ────────────────────
+  /// Lưu lại vector features đã dùng để tránh drift khi features thay đổi sau này
+  featureSnapshot Json?
+
+  // ── So sánh sau khi có kết quả thực ─────────────────────────────
+  /// Điểm thực tế sau khi môn kết thúc (backfill)
+  actualScore     Float?
+  /// Sai lệch = |predictedScore - actualScore|
+  absoluteError   Float?
+
+  predictedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([userId, datasetId])
+  @@index([userId, predictedAt])
+  @@index([modelVersionId])
+  // Tìm tất cả dự đoán chờ backfill (chưa có actualScore)
+  @@index([actualScore])
+
+  @@map("ML_Prediction")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Feature importance chi tiết theo từng model version
+// (Explainability — giúp sinh viên hiểu tại sao điểm bị dự đoán thấp)
+// ─────────────────────────────────────────────────────────────────────
+model ML_FeatureImportance {
+  id              String   @id @default(cuid())
+
+  modelVersionId  String
+  modelVersion    ML_ModelVersion @relation(fields: [modelVersionId], references: [id], onDelete: Cascade)
+
+  /// Tên feature (phải khớp với field trong ML_GradeDataset)
+  featureName     String
+  /// Mức độ quan trọng (0.0 → 1.0, tổng = 1.0)
+  importance      Float
+  /// Rank (1 = quan trọng nhất)
+  rank            Int
+
+  createdAt       DateTime @default(now())
+
+  @@unique([modelVersionId, featureName], name: "uq_ml_feature_importance")
+  @@index([modelVersionId, rank])
+
+  @@map("ML_FeatureImportance")
+}
+
+// ══════════════════════════════════════════════════════════════════════
+
+model Major {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CourseInfo {
+  id              String   @id @default(cuid())
+  courseCode      String   @unique
+  name            String
+  credits         Int
+  difficultyScore Float?
+  isKillerCourse  Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Quan hệ môn học tiên quyết (Môn này coi môn khác là tiên quyết)
+  prerequisites   CoursePrerequisite[] @relation("CourseToPrerequisites")
+  
+  // Quan hệ môn học tiên quyết (Môn này là tiên quyết cho môn khác)
+  prerequisiteFor CoursePrerequisite[] @relation("PrerequisiteToCourses")
+}
+
+model CoursePrerequisite {
+  id                   String     @id @default(cuid())
+  
+  courseId             String
+  course               CourseInfo @relation("CourseToPrerequisites", fields: [courseId], references: [id], onDelete: Cascade)
+  
+  prerequisiteCourseId String
+  prerequisiteCourse   CourseInfo @relation("PrerequisiteToCourses", fields: [prerequisiteCourseId], references: [id], onDelete: Cascade)
+
+  createdAt            DateTime   @default(now())
+
+  @@unique([courseId, prerequisiteCourseId])
 }

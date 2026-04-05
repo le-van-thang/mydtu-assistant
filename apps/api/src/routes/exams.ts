@@ -55,8 +55,8 @@ examsRouter.get("/", async (req, res) => {
 
   const items = await prisma.examRecord.findMany({
     where,
-    orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { courseCode: "asc" }],
-    take: 5000,
+    orderBy: [{ examDate: "desc" }, { startTime: "asc" }, { courseCode: "asc" }],
+    take: 50000,
   });
 
   return res.json({

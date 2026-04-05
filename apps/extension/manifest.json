@@ -2,8 +2,8 @@
 {
   "manifest_version": 3,
   "name": "MYDTU Sync",
-  "version": "0.3.0",
-  "description": "Bridge MYDTU timetable, transcript and exam session to MYDTU Assistant web app",
+  "version": "0.4.0",
+  "description": "Bridge MYDTU timetable, transcript, exam and lecturer evaluation to MYDTU Assistant web app",
   "permissions": ["tabs", "storage", "scripting"],
   "host_permissions": [
     "https://mydtu.duytan.edu.vn/*",
@@ -34,6 +34,11 @@
     {
       "matches": ["https://mydtu.duytan.edu.vn/*"],
       "js": ["transcript_detail_page.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://mydtu.duytan.edu.vn/*"],
+      "js": ["evaluation_page.js"],
       "run_at": "document_idle"
     }
   ],

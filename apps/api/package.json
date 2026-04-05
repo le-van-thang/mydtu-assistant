@@ -9,14 +9,19 @@
     "test": "vitest --config vitest.config.ts",
     "test:run": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
-    "coverage": "vitest run --coverage --config vitest.config.ts"
+    "coverage": "vitest run --coverage --config vitest.config.ts",
+    "export-data": "ts-node scripts/exportDataset.ts",
+    "seed-ml": "ts-node scripts/seedMLData.ts",
+    "seed-curriculum": "tsx scripts/seedCurriculum.ts"
   },
   "prisma": {
     "seed": "ts-node --project prisma/tsconfig.json --transpile-only prisma/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.58",
     "@mydtu/shared": "workspace:*",
     "@prisma/client": "^6.19.1",
+    "ai": "^6.0.146",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -34,6 +39,7 @@
     "@types/node": "^20.19.27",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^4.0.18",
+    "csv-writer": "^1.6.0",
     "prisma": "^6.19.1",
     "supertest": "^7.2.2",
     "ts-node": "^10.9.2",

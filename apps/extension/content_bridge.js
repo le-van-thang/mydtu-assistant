@@ -34,6 +34,24 @@
     );
   }
 
+  function normalizeBridgeError(rawMessage) {
+    const text = String(rawMessage || "Runtime sendMessage failed");
+    const lowered = text.toLowerCase();
+
+    if (lowered.includes("context invalidated")) {
+      return "Extension context invalidated. Hãy reload extension và hard refresh trang web.";
+    }
+
+    if (
+      lowered.includes("message channel closed") ||
+      lowered.includes("a listener indicated an asynchronous response")
+    ) {
+      return "Kênh đồng bộ của extension bị đóng sớm. Hãy giữ tab MYDTU mở và thử lại.";
+    }
+
+    return text;
+  }
+
   function safeSend(message, onDone) {
     if (
       !globalThis.chrome ||
@@ -68,18 +86,9 @@
       chrome.runtime.sendMessage(message, (response) => {
         const err = chrome.runtime?.lastError;
         if (err) {
-          const rawMessage = String(
-            err.message || "Runtime sendMessage failed",
-          );
-          const normalized = rawMessage
-            .toLowerCase()
-            .includes("context invalidated")
-            ? "Extension context invalidated. Hãy reload extension và hard refresh trang web."
-            : rawMessage;
-
           done({
             ok: false,
-            error: normalized,
+            error: normalizeBridgeError(err.message),
           });
           return;
         }
@@ -87,16 +96,9 @@
         done(response || { ok: false, error: "Empty response from extension" });
       });
     } catch (e) {
-      const rawMessage = String(e?.message || e);
-      const normalized = rawMessage
-        .toLowerCase()
-        .includes("context invalidated")
-        ? "Extension context invalidated. Hãy reload extension và hard refresh trang web."
-        : rawMessage;
-
       done({
         ok: false,
-        error: normalized,
+        error: normalizeBridgeError(e?.message || e),
       });
     }
   }
