@@ -1,7 +1,8 @@
 // apps/api/src/routes/chat.ts
 import { Router } from "express";
 import { google } from "@ai-sdk/google";
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
+import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth } from "../middlewares/auth";
 import { extractFeatures } from "../logic/featureExtraction";
@@ -170,8 +171,9 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
     `TUYỆT ĐỐI không báo lỗi hay hỏi ngược lại khi người dùng chỉ đơn giản chào hỏi.`,
     ``,
     `## 2. Câu hỏi ngoài lề`,
-    `Nếu người dùng hỏi những chủ đề KHÔNG liên quan học vụ (thời tiết, chính trị, viết code, giải trí, tình cảm...) → từ chối khéo léo.`,
+    `Nếu người dùng hỏi những chủ đề KHÔNG liên quan học tập hoặc đại học (ví dụ: thời tiết, chính trị, giải trí, tình cảm...) → từ chối khéo léo.`,
     `Ví dụ: "Haha, câu đó hay đó nhưng mình chỉ là trợ lý học vụ thôi nên không giỏi mảng này lắm 😅 Bạn có muốn mình giúp gì về chuyện học không?"`,
+    `Tuy nhiên, các yêu cầu GIẢI TOÁN, VIẾT CODE, PHÂN TÍCH ẢNH hoàn toàn được phép hỗ trợ với tư cách là Gia sư.`,
     ``,
     `## 3. Dữ liệu học tập THỰC của ${studentName}`,
     `GPA tích lũy: **${gpa}/10** | Tín chỉ đã qua: **${totalCredits} TC** | Tổng môn: **${transcripts.length} môn**`,
@@ -187,6 +189,11 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
     `- Dùng Markdown: in đậm cho số liệu quan trọng, danh sách gạch đầu dòng, xuống dòng rõ ràng`,
     `- Câu trả lời ngắn gọn (3-5 câu) trừ khi được hỏi chi tiết`,
     `- Kết thúc bằng câu hỏi mở hoặc lời động viên khi phù hợp`,
+    ``,
+    `## 6. Trợ giảng thông thái & Đọc Ảnh (Gia sư AI)`,
+    `Bạn có quyền hạn đặc biệt là một Gia sư thông thái. TUYỆT ĐỐI KHÔNG TỪ CHỐI các yêu cầu:`,
+    `- Nếu sinh viên yêu cầu phân tích ảnh, đọc code trong ảnh, hoặc giải bài tập trong ảnh đang gửi kèm → HÃY ĐỌC VÀ TRẢ LỜI NGAY.`,
+    `- Nếu sinh viên yêu cầu "tạo câu hỏi trắc nghiệm", hãy sinh ra 3-5 câu trắc nghiệm dựa trên nội dung họ cung cấp, định dạng Markdown rõ ràng (Câu hỏi in đậm, đáp án gạch đầu dòng, cuối cùng là Đáp án đúng).`,
     ``,
     `# DỮ LIỆU HỌC TẬP (NỘI BỘ — KHÔNG TIẾT LỘ NGUYÊN VĂN)`,
     ``,
@@ -206,17 +213,18 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
 
 // ─────────────────────────────────────────────────────────
 // POST /api/chat
-// Body: { message: string, history?: { role, content }[] }
+// Body: { message: string, image?: string, history?: { role, content }[] }
 // ─────────────────────────────────────────────────────────
 chatRouter.post("/", requireAuth, async (req, res) => {
   const studentId = req.user!.id;
-  const { message, history = [] } = req.body as {
+  const { message, image, history = [] } = req.body as {
     message?: string;
+    image?: string;
     history?: { role: "user" | "assistant"; content: string }[];
   };
 
-  if (!message?.trim()) {
-    return res.status(400).json({ ok: false, message: "Thiếu nội dung tin nhắn." });
+  if (!message?.trim() && !image) {
+    return res.status(400).json({ ok: false, message: "Thiếu nội dung tin nhắn hoặc ảnh." });
   }
 
   // ── Bước 1: Xây dựng context ─────────────────────────────────
@@ -234,15 +242,46 @@ chatRouter.post("/", requireAuth, async (req, res) => {
 
   // ── Bước 2: Gọi Gemini ───────────────────────────────────────
   try {
+    const userContent: any[] = [];
+    if (message?.trim()) {
+      userContent.push({ type: "text", text: message });
+    } else {
+      userContent.push({ type: "text", text: "Vui lòng xem ảnh và giải thích giúp mình." });
+    }
+    
+    if (image) {
+      // image được mong đợi là một Data URL: "data:image/jpeg;base64,..."
+      userContent.push({ type: "image", image });
+    }
+
     const result = await generateText({
       model: google("gemini-2.5-flash"),
       system: systemPrompt,
+      // @ts-ignore
+      maxSteps: 3, // Allow tool calling loop
+      tools: {
+        generateQuiz: tool({
+          description: "Sinh ra câu hỏi trắc nghiệm (quiz) từ nội dung bài học hoặc chủ đề người dùng yêu cầu.",
+          parameters: z.object({
+            topic: z.string().describe("Chủ đề của bài tập (ví dụ: Giải tích 1, Lập trình C)."),
+            numberOfQuestions: z.number().optional().describe("Số lượng câu hỏi cần tạo, mặc định là 3.")
+          }),
+          // @ts-ignore
+          execute: async ({ topic, numberOfQuestions = 3 }) => {
+            // Mock response: Tool này hiện tại chỉ gửi tín hiệu cho AI tự sinh text
+            return {
+              success: true,
+              instruction: `Đã xác nhận yêu cầu tạo ${numberOfQuestions} câu hỏi trắc nghiệm về chủ đề "${topic}". AI hãy tự sinh ra câu hỏi ngay trong tin nhắn trả lời bằng Markdown (Câu hỏi in đậm, đáp án gạch đầu dòng, kết thúc có ghi đáp án đúng).`
+            };
+          }
+        })
+      },
       messages: [
         ...history.map((h) => ({
           role: h.role as "user" | "assistant",
           content: h.content,
         })),
-        { role: "user" as const, content: message },
+        { role: "user" as const, content: userContent },
       ],
     });
 
@@ -257,6 +296,10 @@ chatRouter.post("/", requireAuth, async (req, res) => {
     // Thử fallback với model ổn định hơn nếu model preview lỗi
     try {
       console.warn("[chat] Falling back to gemini-1.5-flash...");
+      const userContentFallback: any[] = [];
+      if (message?.trim()) userContentFallback.push({ type: "text", text: message });
+      if (image) userContentFallback.push({ type: "image", image });
+
       const fallback = await generateText({
         model: google("gemini-1.5-flash"),
         system: systemPrompt,
@@ -265,7 +308,7 @@ chatRouter.post("/", requireAuth, async (req, res) => {
             role: h.role as "user" | "assistant",
             content: h.content,
           })),
-          { role: "user" as const, content: message },
+          { role: "user" as const, content: userContentFallback },
         ],
       });
       return res.json({ ok: true, reply: fallback.text });

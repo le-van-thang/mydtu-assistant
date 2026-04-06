@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ message: body.message, history: (body as any).history ?? [] }),
+      body: JSON.stringify({ message: body.message, image: (body as any).image, history: (body as any).history ?? [] }),
       cache: "no-store",
     });
 

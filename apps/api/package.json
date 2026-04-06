@@ -12,7 +12,8 @@
     "coverage": "vitest run --coverage --config vitest.config.ts",
     "export-data": "ts-node scripts/exportDataset.ts",
     "seed-ml": "ts-node scripts/seedMLData.ts",
-    "seed-curriculum": "tsx scripts/seedCurriculum.ts"
+    "seed-curriculum": "tsx scripts/seedCurriculum.ts",
+    "prep-llm-data": "tsx scripts/prepareLlmDataset.ts"
   },
   "prisma": {
     "seed": "ts-node --project prisma/tsconfig.json --transpile-only prisma/seed.ts"
