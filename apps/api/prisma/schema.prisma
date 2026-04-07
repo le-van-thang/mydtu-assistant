@@ -31,9 +31,9 @@ enum SectionType {
   OTHER
 }
 
-enum UserRole {
-  user
-  admin
+enum Role {
+  USER
+  ADMIN
 }
 
 enum SchoolType {
@@ -59,11 +59,12 @@ model User {
   email     String   @unique
   name      String?
   password  String
-  role      UserRole @default(user)
+  role      Role     @default(USER)
 
-  schoolType   SchoolType @default(university)
-  birthDate    DateTime
-  placeOfBirth String?
+  schoolType     SchoolType @default(university)
+  universityName String?    // Tên trường (sinh viên tự nhập — hỗ trợ đa trường)
+  birthDate      DateTime
+  placeOfBirth   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -83,6 +84,10 @@ model User {
   // ML
   mlGradeDatasets ML_GradeDataset[]
   mlPredictions   ML_Prediction[]
+
+  // OmniScholar AI
+  careerPathways  CareerPathway[]
+  studyMaterials  StudyMaterial[]
 }
 
 model UserSettings {
@@ -721,4 +726,76 @@ model CoursePrerequisite {
   createdAt            DateTime   @default(now())
 
   @@unique([courseId, prerequisiteCourseId])
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// OMNISCHOLAR AI — CAREER PATHWAYS & COGNITIVE LEARNING
+// ══════════════════════════════════════════════════════════════════════
+
+enum MaterialType {
+  PDF
+  LINK
+}
+
+/// Lộ trình nghề nghiệp do sinh viên khai báo mục tiêu
+model CareerPathway {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Vị trí / nghề nghiệp mục tiêu (ví dụ: "Backend Engineer", "Data Scientist")
+  targetJob      String
+
+  /// Danh sách kỹ năng cần thiết, lưu dạng JSON array (ví dụ: ["Python", "SQL", "ML"])
+  requiredSkills Json     @default("[]")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// Tài liệu học tập — PDF upload hoặc link ngoài
+model StudyMaterial {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title          String
+  type           MaterialType @default(LINK)
+
+  /// URL nguồn — null nếu là file PDF upload trực tiếp
+  sourceUrl      String?
+
+  /// Nội dung văn bản đã bóc tách từ PDF / scrape từ URL (lưu Text dài)
+  parsedContent  String?      @db.Text
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  flashcards     Flashcard[]
+
+  @@index([userId])
+  @@index([userId, type])
+}
+
+/// Flashcard sinh ra từ tài liệu học tập, hỗ trợ Spaced Repetition
+model Flashcard {
+  id           String        @id @default(cuid())
+  materialId   String
+  material     StudyMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  question     String        @db.Text
+  answer       String        @db.Text
+
+  /// Lần cuối ôn tập
+  lastReviewed DateTime?
+  /// Ngày ôn tập tiếp theo (Spaced Repetition Algorithm)
+  nextReview   DateTime?
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([materialId])
+  @@index([materialId, nextReview])
 }

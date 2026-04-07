@@ -1,6 +1,6 @@
 "use client";
 
-import SyncTranscriptButton from "@/components/SyncTranscriptButton";
+// import SyncTranscriptButton from "@/components/SyncTranscriptButton";
 import { fetchTranscript, type TranscriptItem } from "@/lib/transcript/api";
 import {
   exportTranscriptCsv,
@@ -10,7 +10,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import TranscriptExtensionConnect from "./TranscriptExtensionConnect";
+// import TranscriptExtensionConnect from "./TranscriptExtensionConnect";
+import VisionOcrUploader from "@/components/VisionOcrUploader";
 import Skeleton from "@/components/ui/Skeleton";
 
 type MetaState = {
@@ -964,7 +965,7 @@ export default function TranscriptPage() {
                 HTML
               </button>
 
-              <SyncTranscriptButton />
+{/* <SyncTranscriptButton /> */}
             </div>
 
             <button
@@ -995,7 +996,10 @@ export default function TranscriptPage() {
           )}
         </ExpandableHint>
 
-        <TranscriptExtensionConnect />
+        <VisionOcrUploader onUploadComplete={() => {
+          pushToast("success", "Trích xuất hoàn tất", "Bảng điểm đã được AI xử lý và phân tích thành công.");
+          void load();
+        }} />
 
         <div className="app-card rounded-3xl p-4">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">

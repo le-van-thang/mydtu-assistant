@@ -13,6 +13,9 @@ import { transcriptDetailRouter } from "./transcriptDetail";
 import { syncTranscriptDetailRouter } from "./syncTranscriptDetail";
 import { usersRouter } from "./users";
 import { recommendationRouter } from "./recommendation";
+import { transcriptUploadRouter } from "./transcriptUpload";
+
+import { voiceChatRouter } from "./voiceChat";
 
 export const apiRouter = Router();
 
@@ -24,10 +27,12 @@ apiRouter.use("/exams", examsRouter);
 apiRouter.use("/data", dataRouter);
 apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/chat", chatRouter);
+apiRouter.use("/voice-chat", voiceChatRouter);
 apiRouter.use("/recommendation", recommendationRouter);
 
 apiRouter.use("/sync", syncRouter);
 apiRouter.use("/sync/transcript-detail", syncTranscriptDetailRouter);
 
 apiRouter.use("/transcript", transcriptRouter);
+apiRouter.use("/transcript", transcriptUploadRouter);
 apiRouter.use("/transcript/detail", transcriptDetailRouter);

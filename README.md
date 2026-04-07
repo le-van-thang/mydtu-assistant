@@ -1,41 +1,34 @@
-# 🎓 MYDTU Assistant
+# 🎓 OmniScholar AI
 
-MYDTU Assistant là một hệ thống **backend + shared logic** phục vụ việc  
-thu thập, chuẩn hóa và phân tích dữ liệu học vụ sinh viên Đại học Duy Tân  
-(từ extension / client bên ngoài), hướng tới các tính năng **AI & học vụ thông minh**.
+OmniScholar AI là nền tảng **EdTech Đa trường** phục vụ việc tối ưu hóa lộ trình học tập, phân tích kỹ năng và hỗ trợ học thuật thông minh dựa trên AI.
 
 ---
 
-## ✨ Mục tiêu dự án
+## ✨ Tầm nhìn dự án
 
-- Tự động **import bảng điểm, thời khóa biểu, lớp học**
-- Chuẩn hóa dữ liệu theo **schema thống nhất**
-- Tính toán học vụ:
-  - GPA hệ 4.0
-  - Trạng thái học phần (passed, failed, absent, banned…)
-- Làm nền tảng cho:
-  - Planner học tập
-  - Cảnh báo học vụ
-  - Dự đoán GPA
-  - AI Assistant (tương lai)
+- **Đa trường (Multi-school)**: Không còn giới hạn ở một trường đại học duy nhất.
+- **Vision AI First**: Sử dụng Gemini Vision để nhập bảng điểm và tài liệu từ hình ảnh/PDF thay vì phụ thuộc vào browser extensions.
+- **Hệ sinh thái học thuật thông minh**:
+  - **Pathways**: La bàn định hướng nghề nghiệp và kỹ năng.
+  - **Cognitive Studio**: Phòng rèn luyện tư duy và ôn tập (Flashcards, Spaced Repetition).
+  - **Data Sandbox**: Cho phép sinh viên nghiên cứu và dự báo học vụ dựa trên dữ liệu thật.
 
 ---
 
 ## 🧱 Kiến trúc tổng quan
 
-┌────────────────────┐
-│ Browser Extension  │
-│ (MyDTU Scraper)    │
-└─────────┬──────────┘
-          │ JSON Payload
+┌──────────────────────────┐
+│ Web Dashboard (Next.js)  │
+│ apps/web                 │
+└─────────┬────────────────┘
+          │ Rest API / Vision
           ▼
 ┌──────────────────────────┐
 │ API Server (Express)     │
 │ apps/api                 │
 │                          │
-│ - Zod validate payload   │
-│ - Normalize data         │
-│ - Business logic         │
+│ - Gemini Vision AI OCR   │
+│ - Business Logic         │
 │ - Prisma ORM             │
 └─────────┬────────────────┘
           │
@@ -44,129 +37,39 @@ thu thập, chuẩn hóa và phân tích dữ liệu học vụ sinh viên Đạ
 │ PostgreSQL Database      │
 │                          │
 │ Tables:                  │
-│ - User                   │
-│ - ImportSession          │
-│ - Transcript             │
-│ - Timetable              │
-│ - ClassSection           │
-│ - EvaluationDraft        │
+│ - User (universityName)  │
+│ - CareerPathway          │
+│ - StudyMaterial          │
+│ - Flashcard              │
+│ - Transcript/Timetable   │
 └──────────────────────────┘
 
-┌──────────────────────────┐
-│ Shared Logic Package     │
-│ packages/shared          │
-│                          │
-│ - GPA rules              │
-│ - Course status rules    │
-│ - Zod schemas            │
-│ - Academic utilities     │
-└──────────────────────────┘
-📁 Cấu trúc thư mục
+---
 
-mydtu-assistant/
-├── apps/
-│   └── api/
-│       ├── prisma/
-│       │   ├── migrations/
-│       │   └── schema.prisma
-│       ├── src/
-│       │   ├── routes/
-│       │   ├── middlewares/
-│       │   └── utils/
-│       ├── package.json
-│       └── tsconfig.json
-│
-├── packages/
-│   └── shared/
-│       ├── src/
-│       │   ├── academic.ts
-│       │   ├── logic/
-│       │   └── schemas/
-│       └── package.json
-│
-├── pnpm-workspace.yaml
-├── package.json
-└── README.md
------------------------------------------------------------
-🧠 Luồng xử lý dữ liệu (Import Flow)
-Extension gửi payload JSON lên API /import
+## 🚀 Chạy dự án (Local)
 
-API:
+1. **Cài đặt**:
+   ```bash
+   pnpm install
+   ```
 
-Validate bằng Zod
+2. **Dữ liệu**:
+   ```bash
+   # Sync Database
+   pnpm --filter api exec prisma db push
+   
+   # Prep Data Dataset
+   pnpm --filter api run prep-llm-data
+   ```
 
-Chuẩn hóa dữ liệu (status, GPA, điểm)
+3. **Chạy**:
+   ```bash
+   # Chạy cả backend và frontend
+   pnpm dev
+   ```
 
-Tạo ImportSession (idempotent theo payload hash)
+---
 
-Upsert:
-
-Transcript
-
-Timetable
-
-ClassSection
-
-Trả về thống kê import
------------------------------------------------------------
-📊 Trạng thái học phần (CourseStatus)
-passed
-failed
-retaken
-in_progress
-unknown
-absent_final
-banned_final
-Logic fallback:
-
-Không có status → tính theo score10
-
-< 4.0 → failed
-
->= 4.0 → passed
------------------------------------------------------------
-🛠 Công nghệ sử dụng
-Node.js + TypeScript
-
-Express
-
-Prisma ORM
-
-PostgreSQL
-
-pnpm workspace
-
-Zod (validation)
------------------------------------------------------------
-🚀 Chạy project (local)
-
-pnpm install
-cd apps/api
-npx prisma migrate dev
-pnpm dev
-API chạy tại:
-http://localhost:4000
-Prisma Studio:
-npx prisma studio
------------------------------------------------------------
-🔒 Lưu ý bảo mật
-Không lưu dữ liệu đăng nhập MyDTU
-
-Không crawl trực tiếp từ server
-
-Chỉ nhận dữ liệu do client chủ động gửi
------------------------------------------------------------
-📌 Định hướng tiếp theo
-GPA Planner & Goal Seeking
-
-AI phân tích học vụ
-
-Recommendation học phần
-
-Frontend Dashboard (React)
-
-Authentication riêng (không liên quan MyDTU)
-
-👤 Tác giả
+## 👤 Tác giả
 Lê Văn Thắng
-Project học thuật / nghiên cứu
+*Dự án đang trong giai đoạn chuyển đổi (Pivot) sang OmniScholar AI.*

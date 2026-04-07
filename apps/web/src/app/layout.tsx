@@ -6,8 +6,8 @@ import I18nProvider from "@/lib/i18n/I18nProvider";
 import ThemeProvider from "@/components/common/ThemeProvider";
 
 export const metadata = {
-  title: "MYDTU Assistant",
-  description: "Hệ thống trợ lý học tập DTU",
+  title: "OmniScholar AI",
+  description: "Nền tảng EdTech hỗ trợ học tập thông minh đa trường",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

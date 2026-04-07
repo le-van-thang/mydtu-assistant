@@ -1,9 +1,9 @@
 "use client";
 
-import SyncTimetableButton from "@/components/SyncTimetableButton";
+// import SyncTimetableButton from "@/components/SyncTimetableButton";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import ExtensionConnect from "./ExtensionConnect";
+// import ExtensionConnect from "./ExtensionConnect";
 
 type TimetableItem = {
   id: string;
@@ -568,12 +568,12 @@ export default function TimetablePage() {
           </div>
 
           <div className="flex flex-col items-start gap-2 lg:items-end shrink-0">
-            <div
+{/* <div
               onClickCapture={handleSyncClick}
               className={syncing ? "syncing-timetable-button" : ""}
             >
               <SyncTimetableButton />
-            </div>
+            </div> */}
             {syncMessage ? (
               <div
                 className="mt-1 rounded-xl px-3 py-2 text-[14px] font-bold shadow-sm"
@@ -692,7 +692,7 @@ export default function TimetablePage() {
           </div>
         </div>
 
-        <ExtensionConnect />
+{/* <ExtensionConnect /> */}
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4 items-start">
           <div className="min-w-0 space-y-4">

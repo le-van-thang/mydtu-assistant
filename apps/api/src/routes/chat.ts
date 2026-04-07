@@ -1,7 +1,7 @@
 // apps/api/src/routes/chat.ts
 import { Router } from "express";
-import { google } from "@ai-sdk/google";
 import { generateText, tool } from "ai";
+import { generateTextWithRotation } from "../utils/geminiClient";
 import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth } from "../middlewares/auth";
@@ -77,16 +77,18 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
     orderBy: { semester: "asc" },
   });
 
-  const passed = transcripts.filter((t) => (t.score10 ?? 0) >= 4.0);
+  type TranscriptType = typeof transcripts[0];
+
+  const passed = transcripts.filter((t: TranscriptType) => (t.score10 ?? 0) >= 4.0);
   const failed = transcripts.filter(
-    (t) => t.score10 !== null && (t.score10 ?? 0) < 4.0
+    (t: TranscriptType) => t.score10 !== null && (t.score10 ?? 0) < 4.0
   );
 
   const totalWeighted = passed.reduce(
-    (s, t) => s + (t.score10 ?? 0) * (t.credits ?? 0),
+    (s: number, t: TranscriptType) => s + (t.score10 ?? 0) * (t.credits ?? 0),
     0
   );
-  const totalCredits = passed.reduce((s, t) => s + (t.credits ?? 0), 0);
+  const totalCredits = passed.reduce((s: number, t: TranscriptType) => s + (t.credits ?? 0), 0);
   const gpa =
     totalCredits > 0
       ? Math.round((totalWeighted / totalCredits) * 100) / 100
@@ -117,7 +119,7 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
   }
   let recommendedStr = "Chưa có dữ liệu khung chương trình.";
   try {
-    const passedCodes = new Set(passed.map((t) => t.courseCode));
+    const passedCodes = new Set(passed.map((t: TranscriptType) => t.courseCode));
     const allCourses = await (prisma as any).courseInfo.findMany({
       include: { prerequisites: { include: { prerequisiteCourse: true } } },
       orderBy: { difficultyScore: "asc" },
@@ -143,7 +145,7 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
   const transcriptLines = transcripts
     .slice(-40)
     .map(
-      (t) =>
+      (t: TranscriptType) =>
         `${t.courseCode} - ${t.courseName}: ${t.score10 !== null ? t.score10 + "/10" : "chưa có điểm"} (${t.credits ?? 0} TC, ${t.semester})`
     )
     .join("\n");
@@ -151,53 +153,28 @@ async function buildSystemPrompt(studentId: string): Promise<string> {
   const failedLines =
     failed.length > 0
       ? failed
-          .map((t) => `${t.courseCode} - ${t.courseName}: ${t.score10}/10`)
+          .map((t: TranscriptType) => `${t.courseCode} - ${t.courseName}: ${t.score10}/10`)
           .join("\n")
       : "Không có môn rớt";
 
   const firstName = studentName.split(" ").pop() ?? studentName;
 
   return [
-    `# VAI TRÒ & NHÂN CÁCH`,
-    `Bạn là Trợ lý MYDTU AI của trường Đại học Duy Tân — vui vẻ, nhiệt tình, chân thành.`,
-    `- Luôn xưng "mình", gọi sinh viên là "bạn" (hoặc thân hơn: "${firstName}")`,
-    `- Giọng điệu: tự nhiên, gần gũi như người bạn học cùng trường, KHÔNG cứng nhắc hay robot`,
+    `Bạn là OmniScholar AI. Bạn hiểu tiếng lóng Việt Nam, từ viết tắt (ko, j, dc, r, hs, sv...).`,
+    `Bạn tự động suy luận ý người dùng mà không bắt bẻ chính tả. Luôn xưng 'mình'-'bạn'.`,
+    `MỤC TIÊU CỐT LÕI: Nếu sinh viên hỏi môn học, LUÔN dùng Tool query DB thay vì nói chung chung.`,
     ``,
-    `# QUY TẮC TRẢ LỜI (TUÂN THỦ NGHIÊM NGẶT)`,
+    `CHUYÊN MÔN:`,
+    `- Nếu người dùng hỏi điểm/lộ trình -> BẮT BUỘC dùng Tools (nếu có) hoặc dựa vào dữ liệu bên dưới.`,
+    `- Nếu gửi ảnh bảng điểm -> Giải thích điểm số đó một cách thấu đáo.`,
+    `- Nếu nhờ giải bài tập -> Trình bày từng bước logic, rõ ràng bằng Markdown.`,
+    `- Nếu hỏi chuyện phiếm (thời tiết, game) -> Khéo léo lái về chủ đề học tập hoặc động viên bạn học tập.`,
     ``,
-    `## 1. Chào hỏi`,
-    `Nếu người dùng chào ("chào", "hello", "hi", "alo", "hey"...) → LUÔN chào lại vui vẻ, tự giới thiệu ngắn và hỏi cần giúp gì.`,
-    `Ví dụ: "Chào ${firstName}! 👋 Mình là Trợ lý MYDTU AI — mình có thể giúp bạn tra GPA, xem lịch học, dự báo điểm và tư vấn lộ trình học nhé. Bạn cần mình giúp gì nào? 😊"`,
-    `TUYỆT ĐỐI không báo lỗi hay hỏi ngược lại khi người dùng chỉ đơn giản chào hỏi.`,
-    ``,
-    `## 2. Câu hỏi ngoài lề`,
-    `Nếu người dùng hỏi những chủ đề KHÔNG liên quan học tập hoặc đại học (ví dụ: thời tiết, chính trị, giải trí, tình cảm...) → từ chối khéo léo.`,
-    `Ví dụ: "Haha, câu đó hay đó nhưng mình chỉ là trợ lý học vụ thôi nên không giỏi mảng này lắm 😅 Bạn có muốn mình giúp gì về chuyện học không?"`,
-    `Tuy nhiên, các yêu cầu GIẢI TOÁN, VIẾT CODE, PHÂN TÍCH ẢNH hoàn toàn được phép hỗ trợ với tư cách là Gia sư.`,
-    ``,
-    `## 3. Dữ liệu học tập THỰC của ${studentName}`,
+    `# DỮ LIỆU HỌC TẬP THỰC CỦA SINH VIÊN (NỘI BỘ)`,
+    `Tên sinh viên: ${studentName}`,
     `GPA tích lũy: **${gpa}/10** | Tín chỉ đã qua: **${totalCredits} TC** | Tổng môn: **${transcripts.length} môn**`,
-    `Khi được hỏi về GPA, tín chỉ, kết quả học tập → dùng số liệu trên, KHÔNG bịa đặt.`,
     ``,
-    `## 4. Dự báo điểm — dùng icon rủi ro`,
-    `Khi trình bày dự báo điểm, BẮT BUỘC thêm icon tương ứng:`,
-    `- ✅ Low (điểm dự báo >= 6.5, xác suất qua >= 75%): "Ổn lắm, cứ giữ phong độ nhé!"`,
-    `- ⚠️ Medium (điểm 5.5-6.4 hoặc xác suất 55-75%): "Chú ý ôn tập thêm một chút bạn nhé!"`,
-    `- 🔴 High (điểm < 5.5 hoặc xác suất < 55%): "Rủi ro cao, mình nghĩ bạn nên ưu tiên môn này!"`,
-    ``,
-    `## 5. Định dạng trả lời`,
-    `- Dùng Markdown: in đậm cho số liệu quan trọng, danh sách gạch đầu dòng, xuống dòng rõ ràng`,
-    `- Câu trả lời ngắn gọn (3-5 câu) trừ khi được hỏi chi tiết`,
-    `- Kết thúc bằng câu hỏi mở hoặc lời động viên khi phù hợp`,
-    ``,
-    `## 6. Trợ giảng thông thái & Đọc Ảnh (Gia sư AI)`,
-    `Bạn có quyền hạn đặc biệt là một Gia sư thông thái. TUYỆT ĐỐI KHÔNG TỪ CHỐI các yêu cầu:`,
-    `- Nếu sinh viên yêu cầu phân tích ảnh, đọc code trong ảnh, hoặc giải bài tập trong ảnh đang gửi kèm → HÃY ĐỌC VÀ TRẢ LỜI NGAY.`,
-    `- Nếu sinh viên yêu cầu "tạo câu hỏi trắc nghiệm", hãy sinh ra 3-5 câu trắc nghiệm dựa trên nội dung họ cung cấp, định dạng Markdown rõ ràng (Câu hỏi in đậm, đáp án gạch đầu dòng, cuối cùng là Đáp án đúng).`,
-    ``,
-    `# DỮ LIỆU HỌC TẬP (NỘI BỘ — KHÔNG TIẾT LỘ NGUYÊN VĂN)`,
-    ``,
-    `[DỰ BÁO ĐIỂM KỲ NÀY — Linear Regression v1]`,
+    `[DỰ BÁO ĐIỂM KỲ NÀY — Linear Regression]`,
     predictionSection,
     ``,
     `[BẢNG ĐIỂM — 40 môn gần nhất]`,
@@ -254,8 +231,8 @@ chatRouter.post("/", requireAuth, async (req, res) => {
       userContent.push({ type: "image", image });
     }
 
-    const result = await generateText({
-      model: google("gemini-2.5-flash"),
+    const result = await generateTextWithRotation({
+      model: "gemini-2.5-flash",
       system: systemPrompt,
       // @ts-ignore
       maxSteps: 3, // Allow tool calling loop
@@ -300,8 +277,8 @@ chatRouter.post("/", requireAuth, async (req, res) => {
       if (message?.trim()) userContentFallback.push({ type: "text", text: message });
       if (image) userContentFallback.push({ type: "image", image });
 
-      const fallback = await generateText({
-        model: google("gemini-1.5-flash"),
+      const fallback = await generateTextWithRotation({
+        model: "gemini-1.5-flash",
         system: systemPrompt,
         messages: [
           ...history.map((h) => ({

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { message?: string };
+  let body: any;
   try {
     body = await req.json();
   } catch {
@@ -39,20 +39,21 @@ export async function POST(req: Request) {
   }
 
   try {
-    const upstream = await fetch(`${baseUrl}/chat`, {
+    const upstream = await fetch(`${baseUrl}/voice-chat`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ message: body.message, image: (body as any).image, history: (body as any).history ?? [] }),
+      body: JSON.stringify(body),
       cache: "no-store",
     });
 
     const text = await upstream.text();
 
+    // Log lỗi từ backend để dễ debug
     if (!upstream.ok) {
-      console.error(`[chat proxy] Backend returned ${upstream.status}:`, text);
+      console.error(`[voice-chat proxy] Backend returned ${upstream.status}:`, text);
     }
 
     return new Response(text, {
@@ -62,8 +63,10 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
+    const msg = (error as Error)?.message;
+    console.error("[voice-chat proxy] Cannot reach backend:", msg);
     return new Response(
-      JSON.stringify({ ok: false, message: "Cannot reach API backend", error: String((error as Error)?.message) }),
+      JSON.stringify({ ok: false, message: "Cannot reach API backend", error: msg }),
       { status: 502, headers: { "content-type": "application/json" } },
     );
   }

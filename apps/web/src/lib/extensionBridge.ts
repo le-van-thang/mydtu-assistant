@@ -142,7 +142,7 @@ export type TranscriptDetailSyncPayload = {
 };
 
 export type ExtensionResponse<T = unknown> = {
-  source: "mydtu-assistant-extension";
+  source: "omni-scholar-ai-extension";
   requestId: string;
   ok: boolean;
   data?: T;
@@ -173,8 +173,8 @@ export type TranscriptDetailSyncJobState = {
   updatedAt: number;
 };
 
-const WEB_SOURCE = "mydtu-assistant-web";
-const EXT_SOURCE = "mydtu-assistant-extension";
+const WEB_SOURCE = "omni-scholar-ai-web";
+const EXT_SOURCE = "omni-scholar-ai-extension";
 
 const DEFAULT_TIMEOUT_MS = 300000;
 const OPEN_PAGE_TIMEOUT_MS = 30000;

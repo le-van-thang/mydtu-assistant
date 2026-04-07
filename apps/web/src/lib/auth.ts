@@ -3,7 +3,7 @@ import jwt, { type JwtPayload as JwtLibPayload, type Secret } from "jsonwebtoken
 
 export type JwtPayload = {
   id: string;
-  role: "user" | "admin";
+  role: "USER" | "ADMIN";
 };
 
 function getJwtSecret(): Secret {
@@ -33,6 +33,6 @@ export function verifyToken(token: string): JwtPayload {
 
   return {
     id: String(obj.id),
-    role: obj.role === "admin" ? "admin" : "user",
+    role: String(obj.role).toUpperCase() === "ADMIN" ? "ADMIN" : "USER",
   };
 }

@@ -28,42 +28,9 @@ type NavItem =
 
 const navItems: NavItem[] = [
   { key: "dashboard", href: "/dashboard" },
-  { key: "planner", href: "/planner" },
-  { key: "study", href: "/study" },
-  { key: "timetable", href: "/timetable" },
-  {
-    key: "exams",
-    href: "/exams",
-    children: [
-      {
-        key: "examTentative",
-        href: "/exams?plan=tentative",
-        plan: "tentative",
-      },
-      {
-        key: "examOfficial",
-        href: "/exams?plan=official",
-        plan: "official",
-      },
-    ],
-  },
-  {
-    key: "transcript",
-    href: "/transcript",
-    children: [
-      {
-        key: "transcriptOverview",
-        href: "/transcript",
-      },
-      {
-        key: "transcriptDetail",
-        href: "/transcript/detail",
-      },
-    ],
-  },
-  { key: "rateflow", href: "/rateflow" },
-  { key: "warnings", href: "/warnings" },
-  { key: "reminders", href: "/reminders" },
+  { key: "pathways", href: "/pathways" },
+  { key: "cognitive", href: "/cognitive" },
+  { key: "transcript", href: "/transcript" },
   { key: "settings", href: "/settings" },
 ];
 
@@ -148,8 +115,8 @@ function LogoIcon({ className = "w-8 h-8 shrink-0" }: { className?: string }) {
       <path d="M24 13V33" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
       <defs>
         <linearGradient id="paint0_linear" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#3B82F6" />
-          <stop offset="1" stopColor="#6366F1" />
+          <stop stopColor="#8B5CF6" />
+          <stop offset="1" stopColor="#D946EF" />
         </linearGradient>
       </defs>
     </svg>
@@ -174,6 +141,29 @@ function NavIcon({ name, className = "h-5 w-5" }: { name: string; className?: st
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      );
+    case "pathways":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+      );
+    case "cognitive":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0" />
+          <path d="M12 3a9 9 0 0 0-9 9c0 5 4 9 9 9a7 7 0 0 0 7-7c0-5-4-9-7-9z" />
+          <path d="M15 8l3-3" />
+        </svg>
+      );
+    case "sandbox":
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.3} strokeLinecap="round" strokeLinejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
         </svg>
       );
     case "study":
@@ -309,7 +299,7 @@ function ZodiacMascot() {
                <CloseIcon />
             </button>
           </div>
-          <p className="text-[11px] font-medium app-text-muted mb-4 leading-relaxed">{t("zodiac.description", "MYDTU Assistant sẽ xác định cung mệnh 12 con giáp và tạo Linh Vật Nhún Nhảy đồng hành cùng bạn!")}</p>
+          <p className="text-[11px] font-medium app-text-muted mb-4 leading-relaxed">{t("zodiac.description", "OmniScholar AI sẽ xác định cung mệnh 12 con giáp và tạo Linh Vật Nhún Nhảy đồng hành cùng bạn!")}</p>
           <div className="grid grid-cols-4 gap-2 h-[220px] overflow-y-auto pr-1">
              {Array.from({ length: 48 }).map((_, i) => {
                 const y = 2012 - i; // from 2012 down to 1965
@@ -379,6 +369,9 @@ function getIconColorClass(name: string) {
     case "transcript": return "text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-300";
     case "warnings": return "text-rose-500 group-hover:text-rose-600 dark:text-rose-400 dark:group-hover:text-rose-300";
     case "reminders": return "text-teal-500 group-hover:text-teal-600 dark:text-teal-400 dark:group-hover:text-teal-300";
+    case "pathways": return "text-orange-500 dark:text-orange-400";
+    case "cognitive": return "text-violet-500 dark:text-violet-400";
+    case "sandbox": return "text-cyan-500 dark:text-cyan-400";
     case "settings": return "text-slate-500 group-hover:text-slate-600 dark:text-slate-400 dark:group-hover:text-slate-300";
     default: return "text-[var(--text-muted)] group-hover:text-[var(--accent)]";
   }
@@ -686,11 +679,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <div className="flex items-center gap-3">
                 <LogoIcon />
                 <div>
-                  <div className="text-[22px] font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 leading-none">
-                    Assistant
+                  <div className="text-[22px] font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 leading-none">
+                    OmniScholar AI
                   </div>
                   <div className="text-[11px] font-bold tracking-widest text-[var(--text-muted)] uppercase mt-1">
-                    STUDY AT MYDTU
+                    OMNISCHOLAR PLATFORM
                   </div>
                 </div>
               </div>
@@ -782,11 +775,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 <div className="flex items-center gap-3">
                   <LogoIcon className="w-8 h-8 shrink-0" />
                   <div>
-                    <div className="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 leading-none">
-                      Assistant
+                    <div className="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 leading-none">
+                      OmniScholar AI
                     </div>
                     <div className="text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase mt-1">
-                      STUDY AT MYDTU
+                      OMNISCHOLAR PLATFORM
                     </div>
                   </div>
                 </div>
